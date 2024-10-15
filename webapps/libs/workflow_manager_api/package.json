@@ -1,0 +1,10 @@
+{
+  "name": "workflow_manager_api",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^20",
+    "openapi-typescript": "^7.4.1",
+    "typescript": "^5.6.3"
+  }
+}

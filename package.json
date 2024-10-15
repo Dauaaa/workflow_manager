@@ -1,0 +1,44 @@
+{
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "openapi-typescript",
+            "next",
+            "@next/eslint-plugin-next"
+        ],
+        "//packageExtensions": "Fix missing dependencies in npm packages, see https://pnpm.io/package_json#pnpmpackageextensions",
+        "packageExtensions": {
+            "@vitejs/plugin-vue": {
+                "peerDependencies": {
+                    "vue": "*"
+                }
+            },
+            "@typescript-eslint/eslint-plugin": {
+                "peerDependencies": {
+                    "eslint": "*"
+                }
+            },
+            "eslint-config-next": {
+                "peerDependencies": {
+                    "next": "*"
+                }
+            },
+            "postcss-loader": {
+                "peerDependencies": {
+                    "postcss-flexbugs-fixes": "*",
+                    "postcss-preset-env": "*",
+                    "postcss-normalize": "*"
+                }
+            }
+        }
+    },
+    "dependencies": {
+        "openapi-fetch": "^0.12.2",
+        "openapi-react-query": "^0.2.0",
+        "postcss-cli": "^11.0.0"
+    },
+    "devDependencies": {
+        "@bazel/ibazel": "0.25.0",
+        "openapi-typescript": "^7.4.1",
+        "typescript": "^5.6.3"
+    }
+}
