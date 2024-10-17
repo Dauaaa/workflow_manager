@@ -1,10 +1,10 @@
-load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test",  "js_run_binary")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@bazel_skylib//rules:build_test.bzl", "build_test")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@npm//webapps/nextjs_example:next/package_json.bzl", next_bin = "bin")
-load("@npm//:postcss-cli/package_json.bzl", postcss_cli = "bin")
 load("//:build-tools/rules/ts/nextjs.bzl", "next")
+load("//:build-tools/rules/ts/tailwind.bzl", "tailwind")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -13,31 +13,16 @@ next_bin.next_binary(
     visibility = [":__subpackages__"]
 )
 
-postcss_cli.postcss_binary(
-    name = "tailwind_generator",
-    fixed_args = [
-        # Don't use location here since chdir will cd
-        # to this directory, otherwise path relative to
-        # rootpath will be used (which is wrong)
-        "main.css",
-        "--config",
-        "postcss.config.js",
-    ],
-    chdir = package_name(),
-)
-
-genrule(
+tailwind(
     name = "tailwind",
-    tools = [":tailwind_generator"],
-    visibility = [":__subpackages__"],
+    css_files = ["main.css"],
     srcs = [
-        # need to pass all targets in the repo
         "//webapps/nextjs_example/pages",
+        "//webapps/nextjs_example/public",
+        "//webapps/nextjs_example/styles",
+        ":node_modules",
         ":style_configs",
-        ":node_modules"
     ],
-    outs = ["tailwind.css"],
-    cmd = "BAZEL_BINDIR=$(BINDIR) $(location :tailwind_generator) > $@",
 )
 
 ts_config(
@@ -74,7 +59,7 @@ js_library(
 
 js_library(
     name = "style_configs",
-    srcs = ["main.css", "postcss.config.js", "tailwind.config.js"],
+    srcs = ["main.css", "postcss.config.mjs", "tailwind.config.js"],
 )
 
 js_library(

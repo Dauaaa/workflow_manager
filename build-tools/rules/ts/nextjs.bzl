@@ -4,12 +4,12 @@ This might be upstreamed to a "contrib" folder in rules_js at some point.
 Follow https://github.com/aspect-build/rules_js/issues/1292
 
 Copied from https://github.com/bazelbuild/examples/blob/main/frontend/next.js/defs.bzl
+and patched so some of the docs might be outdated, read the source!
 """
 
 load("@aspect_rules_js//js:defs.bzl", "js_run_binary", "js_run_devserver")
 
 def next(
-        name,
         srcs,
         data,
         next_js_binary,
@@ -18,10 +18,6 @@ def next(
         next_export_out = "out",
         **kwargs):
     """Generates Next.js targets build, dev & start targets.
-
-    `{name}`       - a js_run_binary build target that runs `next build`
-    `{name}_dev`   - a js_run_devserver binary target that runs `next dev`
-    `{name}_start` - a js_run_devserver binary target that runs `next start`
 
     Use this macro in the BUILD file at the root of a next app where the `next.config.js` file is
     located.
@@ -67,7 +63,7 @@ def next(
     will create the targets:
 
     ```
-    //next.js:next
+    //next.js:next_build
     //next.js:next_dev
     //next.js:next_start
     ```
@@ -136,11 +132,26 @@ def next(
     """
 
     tags = kwargs.pop("tags", [])
+    name = kwargs.pop("name", None)
+    build_suffix = "build"
+    dev_suffix = "dev"
+    start_suffix = "start"
+    export_suffix = "export"
+    if name:
+        build_name = name + "_" + build_suffix
+        dev_name = name + "_" + dev_suffix
+        start_name = name + "_" + start_suffix
+        export_name = name + "_" + export_suffix
+    else:
+        build_name = build_suffix
+        dev_name = dev_suffix
+        start_name = start_suffix
+        export_name = export_suffix
 
     # `next build` creates an optimized bundle of the application
     # https://nextjs.org/docs/api-reference/cli#build
     js_run_binary(
-        name = name,
+        name = build_name,
         tool = next_js_binary,
         args = ["build"],
         srcs = srcs + data,
@@ -153,7 +164,7 @@ def next(
     # `next dev` runs the application in development mode
     # https://nextjs.org/docs/api-reference/cli#development
     js_run_devserver(
-        name = "{}_dev".format(name),
+        name = dev_name,
         command = next_bin,
         args = ["dev"],
         data = srcs + data,
@@ -165,10 +176,10 @@ def next(
     # `next start` runs the application in production mode
     # https://nextjs.org/docs/api-reference/cli#production
     js_run_devserver(
-        name = "{}_start".format(name),
+        name = start_name,
         command = next_bin,
         args = ["start"],
-        data = data + [name],
+        data = data + [build_name],
         chdir = native.package_name(),
         tags = tags,
         **kwargs
@@ -177,10 +188,10 @@ def next(
     # `next export` runs the application in production mode
     # https://nextjs.org/docs/api-reference/cli#production
     js_run_binary(
-        name = "{}_export".format(name),
+        name = export_name,
         tool = next_js_binary,
         args = ["export"],
-        srcs = data + [name],
+        srcs = data + [build_name],
         out_dirs = [next_export_out],
         chdir = native.package_name(),
         # Tagged as "manual" since this `next export` writes back to the `.next` directory which causes issues with

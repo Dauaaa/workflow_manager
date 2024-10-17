@@ -1,6 +1,5 @@
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@aspect_rules_js//js:defs.bzl", "js_library")
-load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 
 filegroup(
     name = "app_file_group",

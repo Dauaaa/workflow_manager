@@ -2,9 +2,19 @@ load("@bazel_skylib//rules:diff_test.bzl", "diff_test")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 
 def sync_source(absolute_source_path, absolute_file_label):
-    labels_suffix = absolute_file_label.split(":")[1].replace("/", "_").replace(".", "_")
-    test_label = "check_" + labels_suffix
-    update_label = "update_" + labels_suffix
+    """
+Macro for copying output file to source.
+
+Generates test that checks if generated file is synced to source.
+
+Get all update targets:
+bazel query 'kind("sh_binary", filter(".*_update_sync_source$", //...))'
+Get all test targets:
+bazel query 'kind("sh_binary", filter(".*_check_sync_source$", //...))'
+"""
+    labels_prefix = absolute_file_label.split(":")[1].replace("/", "_").replace(".", "_")
+    test_label = labels_prefix + "_check_sync_source"
+    update_label = labels_prefix + "_update_sync_source"
 
     # relative to current package
     relative_source_path = absolute_source_path.split(native.package_name() + "/")[1]
@@ -28,7 +38,7 @@ def sync_source(absolute_source_path, absolute_file_label):
     # Generate the updater script so there's only one target for devs to run,
     # even if many generated files are in the source folder.
     write_file(
-        name = "gen_update_" + labels_suffix,
+        name = labels_prefix + "_gen_update_sync_source",
         out = "update.sh",
         content = [
             # This depends on bash, would need tweaks for Windows

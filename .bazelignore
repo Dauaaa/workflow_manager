@@ -1,4 +1,6 @@
 node_modules
 webapps/landing_page/node_modules
 webapps/nextjs_example/node_modules
+webapps/react_example/node_modules
+webapps/workflow_manager/node_modules
 webapps/libs/workflow_manager_api/node_modules
