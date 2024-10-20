@@ -10,7 +10,12 @@ Generates test that checks if generated file is synced to source.
 Get all update targets:
 bazel query 'kind("sh_binary", filter(".*_update_sync_source$", //...))'
 Get all test targets:
-bazel query 'kind("sh_binary", filter(".*_check_sync_source$", //...))'
+bazel query 'kind("diff_test", filter(".*_check_sync_source$", //...))'
+
+Update all targets:
+bazel query 'kind("sh_binary", filter(".*_update_sync_source$", //...))' | xargs -I {} bazel run {}
+Test all targets
+bazel query 'kind("diff_test", filter(".*_check_sync_source$", //...))' | xargs -I {} bazel test {}
 """
     labels_prefix = absolute_file_label.split(":")[1].replace("/", "_").replace(".", "_")
     test_label = labels_prefix + "_check_sync_source"

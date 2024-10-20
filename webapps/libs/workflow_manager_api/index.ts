@@ -4,14 +4,30 @@
  */
 
 export interface paths {
-    "/greeting": {
+    "/workflows": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["greeting"];
+        get?: never;
+        put?: never;
+        post: operations["createWorkflow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/{workflowId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getWorkflow"];
         put?: never;
         post?: never;
         delete?: never;
@@ -24,10 +40,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        Greeting: {
-            /** Format: int64 */
+        NewWorkflowDTO: {
+            name?: string;
+        };
+        Workflow: {
+            /** Format: int32 */
             id?: number;
-            content?: string;
+            name?: string;
+            /** Format: int32 */
+            userId?: number;
+            /** Format: int32 */
+            clientId?: number;
+            /** Format: date-time */
+            creationTime?: string;
+            /** Format: date-time */
+            updateTime?: string;
+            /** Format: date-time */
+            deletionTime?: string;
         };
     };
     responses: never;
@@ -38,13 +67,37 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    greeting: {
+    createWorkflow: {
         parameters: {
-            query?: {
-                name?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewWorkflowDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Workflow"];
+                };
+            };
+        };
+    };
+    getWorkflow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -55,7 +108,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Greeting"];
+                    "*/*": components["schemas"]["Workflow"];
                 };
             };
         };

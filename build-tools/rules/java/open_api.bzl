@@ -7,12 +7,10 @@ This macro sends request to path `GET /v3/api-docs.yaml` to get the OpenAPI sche
 Output is named like java_bin + "_open_api.yaml"
     """
 
-    uber_jar = java_bin + "_deploy.jar"
-
     native.genrule(
         name = name,
         # wrapper script for running the application has same name as label
-        srcs = [uber_jar],
+        srcs = [java_bin],
         outs = [java_bin + "_open_api.yaml"],
         cmd = """
 # remove .jar files that might come with the target
