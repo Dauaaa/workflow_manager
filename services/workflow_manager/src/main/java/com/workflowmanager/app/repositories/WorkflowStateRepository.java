@@ -20,9 +20,9 @@ public interface WorkflowStateRepository extends Repository<WorkflowState, Integ
     void save(WorkflowState workflowState);
 
     /**
-     * List workflow state by id
+     * Get workflow state by id
      */
-    @Query("SELECT ws FROM WorkflowState ws WHERE ws.id = :id AND ws.clientId = :clientId")
+    @Query("SELECT new com.workflowmanager.app.domains.WorkflowState(ws, (SELECT COUNT(we) FROM WorkflowEntity we WHERE we.currentState.id = :id)) FROM WorkflowState ws WHERE ws.id = :id AND ws.clientId = :clientId")
     @Transactional(readOnly = true)
     Optional<WorkflowState> getByIdAndClientId(@Param("id") Integer id, @Param("clientId") Integer clientId);
 

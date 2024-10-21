@@ -1,6 +1,8 @@
 package com.workflowmanager.app.repositories;
 
 import com.workflowmanager.app.domains.Workflow;
+import com.workflowmanager.app.domains.WorkflowState;
+import com.workflowmanager.app.domains.state.ChangeStateRules;
 
 import java.util.Optional;
 import org.springframework.data.repository.Repository;
@@ -11,17 +13,10 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-@Qualifier("workflows")
-public interface WorkflowRepository extends Repository<Workflow, Integer> {
+@Qualifier("workflow_states")
+public interface ChangeStateRulesRepository extends Repository<ChangeStateRules, Integer> {
     /**
-     * Upsert workflow
+     * Upsert change state rules
 	 */
-    void save(Workflow workflow);
-
-    /**
-     * Get workflow by id and client_id
-     */
-    @Query("SELECT w FROM Workflow w LEFT JOIN w.initialState WHERE w.id = :id AND w.clientId = :clientId")
-    @Transactional(readOnly = true)
-    Optional<Workflow> getByIdAndClientId(@Param("id") Integer id, @Param("clientId") Integer clientId);
+    void save(ChangeStateRules changeStateRules);
 }

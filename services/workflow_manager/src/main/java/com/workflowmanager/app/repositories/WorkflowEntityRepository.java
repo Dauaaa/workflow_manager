@@ -20,7 +20,7 @@ public interface WorkflowEntityRepository extends Repository<WorkflowEntity, Int
     void save(WorkflowEntity workflowEntity);
 
     /**
-     * List workflow state by id
+     * Get workflow state by id
      */
     @Query("SELECT we FROM WorkflowEntity we WHERE we.id = :id AND we.clientId = :clientId")
     @Transactional(readOnly = true)

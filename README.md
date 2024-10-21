@@ -28,11 +28,19 @@ Showcase some of my current developer skills and knowledge.
         - tailwind
         - shadcn
 
+## Products
+- [ ] workflowmanager (server)
+- [ ] workflowmanager (client)
+- [ ] landing page
+- [ ] sse server
+- [ ] auth server
+
 ## Product Features
 - [ ] landing page with tracking (for tuning, conversion rate etc.)
 - [ ] kanban (with live updates)
 - [ ] user account management
 - [ ] cost tracking per client
+- [ ] auth
 
 ## DX features
 - [x] java app
@@ -42,6 +50,9 @@ Showcase some of my current developer skills and knowledge.
 - [x] tailwind
 - [x] react app
 - java
+    - [ ] logging/tracing
+    - [ ] CEL integration
+    - [ ] messagery
     - [ ] unit testing
     - [ ] integration testing
     - [ ] CI
@@ -49,6 +60,8 @@ Showcase some of my current developer skills and knowledge.
     - [ ] formatting
     - [ ] lint
 - javascript
+    - [ ] logging/tracing
+    - [ ] CEL integration
     - [ ] unit testing
     - [ ] integration testing
     - [ ] CI
@@ -56,6 +69,32 @@ Showcase some of my current developer skills and knowledge.
     - [ ] formatting
     - [ ] lint
 - [ ] nix (nix + bazel is not working, will address later)
+
+## Tasks
+- [ ] create the fields class
+    - [ ] all entities can have fields
+        - for example, a state might have a capacity that is enforced by rules
+        - a state might have a deadline
+    - [ ] features will use the fields too
+        - you can namespace with for example ff__priority_v1 to signal the field priority v1 is available
+        - with reflection, the components can have behavior depending if the field exists
+    - [ ] types
+        - [ ] integer
+        - [ ] float
+        - [ ] enum
+        - [ ] decimal
+        - [ ] currency
+        - [ ] date
+        - [ ] timestamp
+        - [ ] boolean
+        - [ ] string
+            - [ ] regex (CAREFUL!)
+            - [ ] email
+            - [ ] phone
+    - since I'm using java, so I think making a sparse class with all these fields and only populating the correct one is ok
+    - classes: 
+        - FieldInstance { Integer descriptionId, Long integer, Double float, ... }
+        - FieldDescription extends BaseEntity { Integer workflowId, String celExpr, FieldType type, ... }
 
 ## Ideas
 

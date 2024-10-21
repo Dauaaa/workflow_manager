@@ -1,5 +1,6 @@
 package com.workflowmanager.app.core;
 
+import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.lang.reflect.Method;
 
@@ -12,29 +13,60 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.PrePersist;
+import jakarta.validation.constraints.Size;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.server.ResponseStatusException;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import com.workflowmanager.app.core.AuthorizationDTO;
 
+@Schema(description = "Base class for all entities in the project. Examples: Workflow, WorkflowState, WorkflowEntity")
 @MappedSuperclass
 public abstract class BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "Numeric id of the entity. Generated on creation.")
     private Integer id;
+
+    @Schema(description = "Name of the entity, max of 50 characters.")
+    @Size(min = 2, max = 50)
+    @NotNull
     private String name;
-    @Column(name = "user_id", nullable = false)
+
+    @Schema(description = "Id of the user that created the entity.")
+    @Column(name = "user_id", nullable = false, updatable = false)
+    @NotNull
     private Integer userId;
-    @Column(name = "client_id", nullable = false)
+
+    @Schema(description = "Id of the client that owns the entity.")
+    @Column(name = "client_id", nullable = false, updatable = false)
+    @NotNull
     private Integer clientId;
+
     @Column(name = "creation_time", nullable = false, updatable = false)
+    @NotNull
     private Instant creationTime;
+
     @Column(name = "update_time", nullable = false)
+    @NotNull
     private Instant updateTime;
+
     @Column(name = "deletion_time")
     private Instant deletionTime;
 
-    @Autowired
     public BaseEntity() {}
+
+    public BaseEntity(BaseEntity that) throws ResponseStatusException {
+        ErrorUtils.serverAssertNeq(that, null);
+
+        this.name = that.getName();
+        this.id = that.getId();
+        this.clientId = that.getClientId();
+        this.userId = that.getUserId();
+        this.creationTime = that.getCreationTime();
+        this.updateTime = that.getUpdateTime();
+        this.deletionTime = that.getDeletionTime();
+    }
 
     public BaseEntity(NewBaseEntityDTO newBaseEntity, AuthorizationDTO auth) {
         this.name = newBaseEntity.name;

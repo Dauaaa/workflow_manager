@@ -1,6 +1,5 @@
 load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
 load("//:build-tools/rules/java/open_api.bzl", "java_open_api_gen")
-load("//:build-tools/rules/postgres/dev-server.bzl", "postgres_server")
 
 java_library(
     name = "workflow_manager_lib",
@@ -18,7 +17,9 @@ java_library(
         "@maven//:org_springframework_boot_spring_boot_autoconfigure",
         "@maven//:org_springframework_boot_spring_boot_starter_data_jpa",
         "@maven//:org_springframework_boot_spring_boot_starter_web",
+        "@maven//:org_springframework_boot_spring_boot_starter_validation",
         "@maven//:org_springframework_spring_web",
+        "@maven//:org_zalando_problem_spring_web_starter",
         "@maven//:jakarta_validation_jakarta_validation_api",
         "@maven//:jakarta_json_jakarta_json_api",
         "@maven//:jakarta_json_bind_jakarta_json_bind_api",
@@ -33,6 +34,10 @@ java_library(
         "@maven//:org_postgresql_postgresql",
         "@maven//:org_springframework_spring_beans",
         "@maven//:org_springframework_spring_core",
+        "@maven//:io_swagger_core_v3_swagger_annotations_jakarta",
+        "@maven//:org_zalando_problem",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:dev_cel_cel",
     ],
 )
 

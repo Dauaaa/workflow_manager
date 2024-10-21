@@ -15,16 +15,22 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.web.server.ResponseStatusException;
 
 @Entity
-@Table(name = "workflow_entities")
+@Table(name = "workflow_entities", indexes = {
+    @Index(name = "workflow_entities_current_state_id_index", columnList = "current_state_id"),
+    @Index(name = "workflow_entities_workflow_id_index", columnList = "workflow_id")
+})
 public class WorkflowEntity extends BaseEntity {
     @ManyToOne(optional = false)
+    @JoinColumn(name = "workflow_id")
     Workflow workflow;
     @ManyToOne(optional = false)
+    @JoinColumn(name = "current_state_id")
     WorkflowState currentState;
 
     public WorkflowEntity() {}

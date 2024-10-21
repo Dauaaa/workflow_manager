@@ -23,6 +23,8 @@ maven.install(
         "com.google.guava:guava:31.1-jre",
         "org.springframework.boot:spring-boot-starter-web:3.3.4",
         "org.springframework.boot:spring-boot-starter-data-jpa:3.3.4",
+        "org.springframework.boot:spring-boot-starter-validation:3.3.4",
+        "org.zalando:problem-spring-web-starter:0.29.1",
         "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0",
         "jakarta.persistence:jakarta.persistence-api:3.1.0",
         "jakarta.json:jakarta.json-api:2.1.3",
@@ -31,6 +33,7 @@ maven.install(
         "org.hibernate:hibernate-core:6.6.1.Final",
         "org.hibernate:hibernate-entitymanager:5.6.15.Final",
         "org.postgresql:postgresql:42.7.4",
+        "dev.cel:cel:0.8.0",
     ],
     fetch_sources = True,
     repositories = [
