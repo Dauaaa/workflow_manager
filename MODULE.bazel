@@ -34,6 +34,7 @@ maven.install(
         "org.hibernate:hibernate-entitymanager:5.6.15.Final",
         "org.postgresql:postgresql:42.7.4",
         "dev.cel:cel:0.8.0",
+        "io.hypersistence:hypersistence-utils-hibernate-60:3.8.3",
     ],
     fetch_sources = True,
     repositories = [

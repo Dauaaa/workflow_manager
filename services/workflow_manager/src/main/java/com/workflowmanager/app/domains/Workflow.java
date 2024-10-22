@@ -30,7 +30,7 @@ public class Workflow extends BaseEntity {
 
     @OneToOne(optional = true, cascade = CascadeType.ALL)
     @Schema(description = "Starting states for all entities in this workflow.")
-    @JoinColumn(name = "initialStateId", referencedColumnName = "id")
+    @JoinColumn(name = "intial_state_id", referencedColumnName = "id")
     private WorkflowState initialState;
 
     public Workflow(NewWorkflowDTO newWorkflow, AuthorizationDTO auth) {

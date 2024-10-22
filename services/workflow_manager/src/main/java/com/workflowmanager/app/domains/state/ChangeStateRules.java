@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Entity;
 import jakarta.persistence.PrePersist;
@@ -14,6 +15,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import org.springframework.web.server.ResponseStatusException;
 
 @Entity
@@ -37,7 +39,8 @@ public class ChangeStateRules {
     @Schema(name = "The expressions that need to return true so the change may happen")
     @Size(min = 1)
     @NotNull
-    private String[] expressions;
+    @Lob
+    private List<String> expressions;
 
     @Column(name = "from_id2", nullable = false, updatable = false)
     private Integer fromId;
@@ -73,7 +76,7 @@ public class ChangeStateRules {
         return this.toId;
     }
 
-    public String[] getExpressions() {
+    public List<String> getExpressions() {
         return this.expressions;
     }
 

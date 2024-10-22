@@ -38,6 +38,8 @@ java_library(
         "@maven//:org_zalando_problem",
         "@maven//:com_fasterxml_jackson_core_jackson_annotations",
         "@maven//:dev_cel_cel",
+        "@maven//:io_hypersistence_hypersistence_utils_hibernate_60",
+        "@maven//:org_hibernate_orm_hibernate_core",
     ],
 )
 
