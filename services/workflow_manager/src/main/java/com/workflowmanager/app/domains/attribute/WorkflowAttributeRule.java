@@ -6,10 +6,9 @@ import java.io.Serializable;
 
 @Embeddable
 public class WorkflowAttributeRule implements Serializable {
-    @Lob
-    public String rule;
-    public String description;
-    public String errorText;
+  @Lob public String rule;
+  public String description;
+  public String errorText;
 
-    public WorkflowAttributeRule() {}
+  public WorkflowAttributeRule() {}
 }
