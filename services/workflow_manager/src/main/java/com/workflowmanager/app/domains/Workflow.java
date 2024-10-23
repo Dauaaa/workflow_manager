@@ -1,5 +1,6 @@
 package com.workflowmanager.app.domains;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.BaseEntity;
 import com.workflowmanager.app.core.ErrorUtils;
@@ -8,8 +9,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PostLoad;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import java.util.List;
 import org.springframework.web.server.ResponseStatusException;
 
 @Entity
@@ -17,10 +22,21 @@ import org.springframework.web.server.ResponseStatusException;
 public class Workflow extends BaseEntity {
   public Workflow() {}
 
-  @OneToOne(optional = true, cascade = CascadeType.ALL)
+  @OneToOne(optional = true)
   @Schema(description = "Starting states for all entities in this workflow.")
   @JoinColumn(name = "intial_state_id", referencedColumnName = "id")
+  @JsonBackReference
   private WorkflowState initialState;
+
+  @Transient private Integer initialStateId;
+
+  @OneToMany(cascade = CascadeType.ALL)
+  @Schema(description = "Attributes for this workflow.")
+  private List<WorkflowAttribute> attrs;
+
+  public List<WorkflowAttribute> getAttrs() {
+    return this.attrs;
+  }
 
   public Workflow(NewWorkflowDTO newWorkflow, AuthorizationDTO auth) {
     super(newWorkflow, auth);
@@ -28,6 +44,10 @@ public class Workflow extends BaseEntity {
 
   public WorkflowState getInitialState() {
     return this.initialState;
+  }
+
+  public Integer getInitialStateId() {
+    return this.initialStateId;
   }
 
   /**
@@ -42,5 +62,10 @@ public class Workflow extends BaseEntity {
 
     // set
     this.initialState = config.initialState;
+  }
+
+  @PostLoad
+  protected void onLoad() {
+    if (this.initialState != null) this.initialStateId = this.initialState.getId();
   }
 }

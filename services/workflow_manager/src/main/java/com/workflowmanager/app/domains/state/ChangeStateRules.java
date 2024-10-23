@@ -8,7 +8,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
@@ -22,23 +21,22 @@ import org.springframework.web.server.ResponseStatusException;
 @IdClass(ChangeStateRulesId.class)
 public class ChangeStateRules {
   @Id
-  @Schema(name = "Workflow state that the entity is in.")
+  @Schema(description = "Workflow state that the entity is in.")
   @ManyToOne(optional = false)
   @JsonBackReference
   @NotNull
   private WorkflowState from;
 
   @Id
-  @Schema(name = "Workflow state that the entity will go to.")
+  @Schema(description = "Workflow state that the entity will go to.")
   @ManyToOne(optional = false)
   @JsonBackReference
   @NotNull
   private WorkflowState to;
 
-  @Schema(name = "The expressions that need to return true so the change may happen")
+  @Schema(description = "The expressions that need to return true so the change may happen")
   @Size(min = 1)
   @NotNull
-  @Lob
   private List<String> expressions;
 
   @Column(name = "from_id2", nullable = false, updatable = false)

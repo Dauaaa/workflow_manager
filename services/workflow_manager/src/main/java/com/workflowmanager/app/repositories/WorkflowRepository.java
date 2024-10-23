@@ -13,6 +13,11 @@ public interface WorkflowRepository extends Repository<Workflow, Integer> {
   /** Upsert workflow */
   void save(Workflow workflow);
 
+  /** Upsert workflow */
+  @Query("SELECT w FROM Workflow w LEFT JOIN w.initialState WHERE w.clientId = :clientId")
+  @Transactional(readOnly = true)
+  void list(@Param("clientId") Integer clientId);
+
   /** Get workflow by id and client_id */
   @Query(
       "SELECT w FROM Workflow w LEFT JOIN w.initialState WHERE w.id = :id AND w.clientId ="

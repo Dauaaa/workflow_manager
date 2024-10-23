@@ -1,12 +1,20 @@
 package com.workflowmanager.app.controllers;
 
+import com.workflowmanager.app.controllers.dtos.WorkflowAttributeResponseDTO;
 import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.ErrorUtils;
+import com.workflowmanager.app.domains.NewWorkflowAttributeDTO;
+import com.workflowmanager.app.domains.NewWorkflowAttributeDescriptionDTO;
 import com.workflowmanager.app.domains.NewWorkflowDTO;
 import com.workflowmanager.app.domains.Workflow;
+import com.workflowmanager.app.domains.WorkflowAttribute;
+import com.workflowmanager.app.domains.WorkflowAttributeDescription;
+import com.workflowmanager.app.domains.WorkflowAttributeDescription.WorkflowAttributeReferenceType;
 import com.workflowmanager.app.domains.WorkflowState;
 import com.workflowmanager.app.domains.workflow.WorkflowConfig;
 import com.workflowmanager.app.domains.workflow.WorkflowConfigDTO;
+import com.workflowmanager.app.repositories.WorkflowAttributeDescriptionRepository;
+import com.workflowmanager.app.repositories.WorkflowAttributeRepository;
 import com.workflowmanager.app.repositories.WorkflowRepository;
 import com.workflowmanager.app.repositories.WorkflowStateRepository;
 import org.springframework.stereotype.Controller;
@@ -21,11 +29,18 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class WorkflowController {
   private final WorkflowRepository workflowRepository;
   private final WorkflowStateRepository workflowStateRepository;
+  private final WorkflowAttributeDescriptionRepository attributeDescriptionRepository;
+  private final WorkflowAttributeRepository workflowAttributeRepository;
 
   public WorkflowController(
-      WorkflowRepository workflowRepository, WorkflowStateRepository workflowStateRepository) {
+      WorkflowRepository workflowRepository,
+      WorkflowStateRepository workflowStateRepository,
+      WorkflowAttributeDescriptionRepository attributeDescriptionRepository,
+      WorkflowAttributeRepository workflowAttributeRepository) {
     this.workflowRepository = workflowRepository;
     this.workflowStateRepository = workflowStateRepository;
+    this.attributeDescriptionRepository = attributeDescriptionRepository;
+    this.workflowAttributeRepository = workflowAttributeRepository;
   }
 
   @GetMapping("workflows/{workflowId}")
@@ -69,5 +84,48 @@ public class WorkflowController {
     this.workflowRepository.save(workflow);
 
     return this.getWorkflow(workflow.getId());
+  }
+
+  @PostMapping("workflows/{workflowId}/attributes")
+  @ResponseBody
+  public void createAttribute(
+      @PathVariable("workflowId") Integer workflowId,
+      @RequestBody NewWorkflowAttributeDescriptionDTO attributeDescriptionDTO) {
+    Workflow workflow =
+        ErrorUtils.onEmpty404(
+            this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
+
+    WorkflowAttributeDescription attributeDescription =
+        new WorkflowAttributeDescription(attributeDescriptionDTO, workflow);
+
+    this.attributeDescriptionRepository.save(attributeDescription);
+  }
+
+  @PutMapping("workflows/{workflowId}/attributes/{attributeName}")
+  @ResponseBody
+  public WorkflowAttributeResponseDTO setAttribute(
+      @PathVariable("workflowId") Integer workflowId,
+      @PathVariable("attributeName") String attributeName,
+      @RequestBody NewWorkflowAttributeDTO attributeDTO) {
+    Workflow workflow =
+        ErrorUtils.onEmpty404(
+            this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
+    WorkflowAttributeDescription attributeDescription =
+        ErrorUtils.onEmpty404(
+            this.attributeDescriptionRepository.getByNameParentWorkflowId(
+                attributeName, workflowId),
+            attributeName);
+
+    WorkflowAttribute attribute =
+        new WorkflowAttribute(
+            attributeDTO,
+            attributeDescription,
+            workflow,
+            workflowId,
+            WorkflowAttributeReferenceType.WORKFLOW);
+
+    this.workflowAttributeRepository.save(attribute);
+
+    return new WorkflowAttributeResponseDTO(attribute, attributeDescription);
   }
 }

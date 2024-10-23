@@ -17,7 +17,12 @@ import org.springframework.web.server.ResponseStatusException;
 @Entity
 @Table(name = "workflow_states")
 public class WorkflowState extends BaseEntity {
-  @ManyToOne @JsonBackReference Workflow workflow;
+  @ManyToOne(optional = false)
+  @JoinColumn(name = "current_state_id2", nullable = false)
+  @JsonBackReference
+  Workflow workflow;
+
+  @Transient private Integer workflowId;
 
   @OneToMany
   @JoinColumn(name = "from_id")
@@ -32,7 +37,8 @@ public class WorkflowState extends BaseEntity {
   public WorkflowState() {}
 
   /** Throws if that is null. */
-  public WorkflowState(WorkflowState that, Long totalEntities) throws ResponseStatusException {
+  public WorkflowState(WorkflowState that, Long totalEntities, Integer workflowId)
+      throws ResponseStatusException {
     super(that);
 
     ErrorUtils.serverAssertNeq(that, null);
@@ -40,6 +46,8 @@ public class WorkflowState extends BaseEntity {
     this.toRules = that.toRules;
     this.fromRules = that.fromRules;
 
+    // transient
+    this.workflowId = workflowId;
     this.totalEntities = totalEntities;
   }
 
@@ -48,6 +56,10 @@ public class WorkflowState extends BaseEntity {
     super(newWorkflowState, auth);
 
     this.workflow = workflow;
+  }
+
+  public Integer getWorkflowId() {
+    return this.workflowId;
   }
 
   public Workflow getWorkflow() {

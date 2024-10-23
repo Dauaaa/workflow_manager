@@ -1,6 +1,7 @@
 package com.workflowmanager.app.domains;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.workflowmanager.app.domains.WorkflowAttributeDescription.WorkflowAttributeReferenceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.ManyToOne;
@@ -9,46 +10,56 @@ import java.util.Objects;
 
 @Embeddable
 public class WorkflowAttributeId implements Serializable {
-  @Schema(name = "Description of the attribute")
+  @Schema(description = "Description of the attribute")
   @ManyToOne(optional = false)
   private WorkflowAttributeDescription description;
 
-  @Schema(name = "If this is not null, it tells that the attribute references this workflow")
+  @Schema(description = "If this is not null, it tells that the attribute references this workflow")
   @JsonBackReference
-  @ManyToOne(optional = true)
-  private Workflow workflow;
+  @ManyToOne(optional = false)
+  private Workflow parentWorkflow;
 
-  @Schema(name = "If this is not null, it tells that the attribute references this workflow state")
-  @JsonBackReference
-  @ManyToOne(optional = true)
-  private WorkflowState state;
+  @Schema(description = "The id of the entity referenced. baseEntityId + refType finds the entity")
+  private Integer baseEntityId;
 
-  @Schema(name = "If this is not null, it tells that the attribute references this workflow entity")
-  @JsonBackReference
-  @ManyToOne(optional = true)
-  private WorkflowEntity entity;
+  @Schema(
+      description =
+          "The type of entity of the entity referenced. baseEntityId + refType finds the entity")
+  private WorkflowAttributeReferenceType refType;
 
   public WorkflowAttributeId(
       WorkflowAttributeDescription description,
-      Workflow workflow,
-      WorkflowState state,
-      WorkflowEntity entity) {
+      Workflow parentWorkflow,
+      Integer baseEntityId,
+      WorkflowAttributeReferenceType refType) {
     this.description = description;
-    this.workflow = workflow;
-    this.state = state;
-    this.entity = entity;
+    this.parentWorkflow = parentWorkflow;
+    this.baseEntityId = baseEntityId;
+    this.refType = refType;
   }
 
-  public WorkflowEntity getEntity() {
-    return entity;
+  public Workflow getParentWorkflow() {
+    return this.parentWorkflow;
   }
 
-  public Workflow getWorkflow() {
-    return this.workflow;
+  public void setParentWorkflow(Workflow parentWorkflow) {
+    this.parentWorkflow = parentWorkflow;
   }
 
-  public WorkflowState getState() {
-    return this.state;
+  public Integer getBaseEntityId() {
+    return this.baseEntityId;
+  }
+
+  public void setBaseEntityId(Integer baseEntityId) {
+    this.baseEntityId = baseEntityId;
+  }
+
+  public WorkflowAttributeReferenceType getRefType() {
+    return this.refType;
+  }
+
+  public void setRefType(WorkflowAttributeReferenceType refType) {
+    this.refType = refType;
   }
 
   public WorkflowAttributeDescription getDescription() {
@@ -67,13 +78,13 @@ public class WorkflowAttributeId implements Serializable {
     if (o == null || this.getClass() != o.getClass()) return false;
     WorkflowAttributeId that = (WorkflowAttributeId) o;
     return Objects.equals(this.description, that.description)
-        && Objects.equals(this.workflow, that.workflow)
-        && Objects.equals(this.state, that.state)
-        && Objects.equals(this.entity, that.entity);
+        && Objects.equals(this.parentWorkflow, that.parentWorkflow)
+        && Objects.equals(this.baseEntityId, that.baseEntityId)
+        && Objects.equals(this.refType, that.refType);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(this.description, this.workflow, this.state, this.entity);
+    return Objects.hash(this.description, this.parentWorkflow, this.baseEntityId, this.refType);
   }
 }

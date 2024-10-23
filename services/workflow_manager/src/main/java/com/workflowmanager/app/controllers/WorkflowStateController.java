@@ -1,19 +1,29 @@
 package com.workflowmanager.app.controllers;
 
+import com.workflowmanager.app.controllers.dtos.WorkflowAttributeResponseDTO;
+import com.workflowmanager.app.controllers.dtos.WorkflowWithStatesDTO;
 import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.ErrorUtils;
+import com.workflowmanager.app.domains.NewWorkflowAttributeDTO;
 import com.workflowmanager.app.domains.NewWorkflowStateDTO;
 import com.workflowmanager.app.domains.Workflow;
+import com.workflowmanager.app.domains.WorkflowAttribute;
+import com.workflowmanager.app.domains.WorkflowAttributeDescription;
+import com.workflowmanager.app.domains.WorkflowAttributeDescription.WorkflowAttributeReferenceType;
 import com.workflowmanager.app.domains.WorkflowState;
 import com.workflowmanager.app.domains.state.ChangeStateRules;
 import com.workflowmanager.app.domains.state.NewChangeStateRulesDTO;
 import com.workflowmanager.app.repositories.ChangeStateRulesRepository;
+import com.workflowmanager.app.repositories.WorkflowAttributeDescriptionRepository;
+import com.workflowmanager.app.repositories.WorkflowAttributeRepository;
 import com.workflowmanager.app.repositories.WorkflowRepository;
 import com.workflowmanager.app.repositories.WorkflowStateRepository;
+import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -22,33 +32,51 @@ public class WorkflowStateController {
   private final WorkflowStateRepository workflowStateRepository;
   private final WorkflowRepository workflowRepository;
   private final ChangeStateRulesRepository changeStateRulesRepository;
+  private final WorkflowAttributeDescriptionRepository attributeDescriptionRepository;
+  private final WorkflowAttributeRepository workflowAttributeRepository;
 
   public WorkflowStateController(
       WorkflowStateRepository workflowStateRepository,
       WorkflowRepository workflowRepository,
-      ChangeStateRulesRepository changeStateRulesRepository) {
+      ChangeStateRulesRepository changeStateRulesRepository,
+      WorkflowAttributeDescriptionRepository attributeDescriptionRepository,
+      WorkflowAttributeRepository workflowAttributeRepository) {
     this.workflowStateRepository = workflowStateRepository;
     this.workflowRepository = workflowRepository;
     this.changeStateRulesRepository = changeStateRulesRepository;
+    this.attributeDescriptionRepository = attributeDescriptionRepository;
+    this.workflowAttributeRepository = workflowAttributeRepository;
+  }
+
+  @GetMapping("workflows/{workflowId}/workflow-states")
+  @ResponseBody
+  public WorkflowWithStatesDTO listStates(@PathVariable("workflowId") Integer workflowId) {
+    List<WorkflowState> states =
+        this.workflowStateRepository.listByWorkflowIdAndClientId(workflowId, 1);
+
+    Workflow workflow =
+        ErrorUtils.onEmpty404(
+            this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
+
+    return new WorkflowWithStatesDTO(workflow, states);
   }
 
   @GetMapping("workflow-states/{workflowStateId}")
   @ResponseBody
-  public WorkflowState getWorkflow(@PathVariable("workflowStateId") Integer workflowStateId) {
+  public WorkflowState getState(@PathVariable("workflowStateId") Integer workflowStateId) {
     return ErrorUtils.onEmpty404(
         this.workflowStateRepository.getByIdAndClientId(workflowStateId, 1));
   }
 
-  @PostMapping("/workflows/{workflowId}/workflow-states")
+  @PostMapping("workflows/{workflowId}/workflow-states")
   @ResponseBody
   public WorkflowState createWorkflow(
       @PathVariable("workflowId") Integer workflowId,
       @RequestBody NewWorkflowStateDTO newWorkflowState) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
     Workflow workflow =
-        this.workflowRepository
-            .getByIdAndClientId(workflowId, 1)
-            .orElseThrow(() -> ErrorUtils.notFoundById(Workflow.class, workflowId));
+        ErrorUtils.onEmpty404(
+            this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
 
     WorkflowState workflowState = new WorkflowState(newWorkflowState, auth, workflow);
     this.workflowStateRepository.save(workflowState);
@@ -79,5 +107,35 @@ public class WorkflowStateController {
     ChangeStateRules rules = new ChangeStateRules(from, to, changeStateRuleDTO);
 
     this.changeStateRulesRepository.save(rules);
+  }
+
+  @PutMapping("workflows-states/{stateId}/attributes/{attributeName}")
+  @ResponseBody
+  public WorkflowAttributeResponseDTO setAttribute(
+      @PathVariable("stateId") Integer stateId,
+      @PathVariable("attributeName") String attributeName,
+      @RequestBody NewWorkflowAttributeDTO attributeDTO) {
+    WorkflowState state =
+        ErrorUtils.onEmpty404(this.workflowStateRepository.getByIdAndClientId(stateId, 1), stateId);
+    Workflow workflow =
+        ErrorUtils.onEmpty404(
+            this.workflowRepository.getByIdAndClientId(state.getWorkflowId(), 1),
+            state.getWorkflowId());
+    WorkflowAttributeDescription attributeDescription =
+        ErrorUtils.onEmpty404(
+            this.attributeDescriptionRepository.getByNameParentWorkflowId(attributeName, stateId),
+            attributeName);
+
+    WorkflowAttribute attribute =
+        new WorkflowAttribute(
+            attributeDTO,
+            attributeDescription,
+            workflow,
+            stateId,
+            WorkflowAttributeReferenceType.WORKFLOW_STATE);
+
+    this.workflowAttributeRepository.save(attribute);
+
+    return new WorkflowAttributeResponseDTO(attribute, attributeDescription);
   }
 }

@@ -40,6 +40,7 @@ java_library(
         "@maven//:dev_cel_cel",
         "@maven//:io_hypersistence_hypersistence_utils_hibernate_60",
         "@maven//:org_hibernate_orm_hibernate_core",
+        "@maven//:jakarta_annotation_jakarta_annotation_api",
     ],
 )
 

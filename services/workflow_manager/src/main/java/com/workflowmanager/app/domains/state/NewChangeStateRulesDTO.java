@@ -6,15 +6,15 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public class NewChangeStateRulesDTO {
-  @Schema(name = "Id of the workflow state that the entity is in.")
+  @Schema(description = "Id of the workflow state that the entity is in.")
   @NotNull
   public Integer fromId;
 
-  @Schema(name = "Id of the workflow state that the entity will go to.")
+  @Schema(description = "Id of the workflow state that the entity will go to.")
   @NotNull
   public Integer toId;
 
-  @Schema(name = "The expressions that need to return true so the change may happen")
+  @Schema(description = "The expressions that need to return true so the change may happen")
   @Size(min = 1)
   @NotNull
   public List<String> expressions;
