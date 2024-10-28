@@ -4,6 +4,70 @@
  */
 
 export interface paths {
+    "/workflows/{workflowId}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/{workflowId}/attributes/{attributeName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setAttribute"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows-states/{stateId}/attributes/{attributeName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setAttribute_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows-entities/{entityId}/attributes/{attributeName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setAttribute_2"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflows": {
         parameters: {
             query?: never;
@@ -18,6 +82,88 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/workflows/{workflowId}/workflow-states": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listStates"];
+        put?: never;
+        post: operations["createWorkflow_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/{workflowId}/workflow-entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List all child entities of a workflow */
+        get: operations["listByWorkflowId"];
+        put?: never;
+        post: operations["createWorkflow_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/{workflowId}/attributes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createAttribute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflow-states/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflow-entities/{entityId}/workflow-states/{newStateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Try moving an entity to a new state */
+        patch: operations["moveState"];
         trace?: never;
     };
     "/workflows/{workflowId}": {
@@ -36,27 +182,327 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workflow-states/{workflowStateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflow-states/{workflowStateId}/workflow-entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List all entities in a given state */
+        get: operations["listByStateId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflow-entities/{workflowEntityId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Create an entity for a workflow */
+        get: operations["getWorkflow_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        NewWorkflowDTO: {
-            name?: string;
+        WorkflowConfigDTO: {
+            /**
+             * Format: int32
+             * @description The state must be owned by the Workflow (initialState.workflowId == workflow.id)
+             */
+            initialStateId?: number;
+        };
+        ChangeStateRules: {
+            from: components["schemas"]["WorkflowState"];
+            to: components["schemas"]["WorkflowState"];
+            /** @description The expressions that need to return true so the change may happen */
+            expressions: string[];
+            /** Format: int32 */
+            fromId?: number;
+            /** Format: int32 */
+            toId?: number;
         };
         Workflow: {
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description Numeric id of the entity. Generated on creation.
+             */
             id?: number;
-            name?: string;
-            /** Format: int32 */
-            userId?: number;
-            /** Format: int32 */
-            clientId?: number;
+            /** @description Name of the entity, max of 50 characters. */
+            name: string;
+            /**
+             * Format: int32
+             * @description Id of the user that created the entity.
+             */
+            userId: number;
+            /**
+             * Format: int32
+             * @description Id of the client that owns the entity.
+             */
+            clientId: number;
             /** Format: date-time */
-            creationTime?: string;
+            creationTime: string;
             /** Format: date-time */
-            updateTime?: string;
+            updateTime: string;
             /** Format: date-time */
             deletionTime?: string;
+            initialState?: components["schemas"]["WorkflowState"];
+            /** Format: int32 */
+            initialStateId?: number;
+            /** @description Attributes for this workflow. */
+            attrs?: components["schemas"]["WorkflowAttribute"][];
+        };
+        /** @description Attributes for this workflow. */
+        WorkflowAttribute: {
+            /** Format: int64 */
+            integer?: number;
+            /** Format: double */
+            floating?: number;
+            enumeration?: string;
+            decimal?: number;
+            currency?: {
+                currencyCode?: string;
+                displayName?: string;
+                symbol?: string;
+                /** Format: int32 */
+                defaultFractionDigits?: number;
+                /** Format: int32 */
+                numericCode?: number;
+                numericCodeAsString?: string;
+            };
+            /** Format: date-time */
+            date?: string;
+            /** Format: date-time */
+            timestamp?: string;
+            flag?: boolean;
+            text?: string;
+        };
+        /** @description Starting states for all entities in this workflow. */
+        WorkflowState: {
+            /**
+             * Format: int32
+             * @description Numeric id of the entity. Generated on creation.
+             */
+            id?: number;
+            /** @description Name of the entity, max of 50 characters. */
+            name: string;
+            /**
+             * Format: int32
+             * @description Id of the user that created the entity.
+             */
+            userId: number;
+            /**
+             * Format: int32
+             * @description Id of the client that owns the entity.
+             */
+            clientId: number;
+            /** Format: date-time */
+            creationTime: string;
+            /** Format: date-time */
+            updateTime: string;
+            /** Format: date-time */
+            deletionTime?: string;
+            workflow?: components["schemas"]["Workflow"];
+            /** Format: int32 */
+            workflowId?: number;
+            fromRules?: components["schemas"]["ChangeStateRules"][];
+            toRules?: components["schemas"]["ChangeStateRules"][];
+            /** Format: int64 */
+            totalEntities?: number;
+        };
+        NewWorkflowAttributeDTO: {
+            /** Format: int32 */
+            parentWorkflowId: number;
+            /** Format: int64 */
+            integer?: number;
+            /** Format: double */
+            floating?: number;
+            enumeration?: string;
+            decimal?: number;
+            currency?: {
+                currencyCode?: string;
+                displayName?: string;
+                symbol?: string;
+                /** Format: int32 */
+                defaultFractionDigits?: number;
+                /** Format: int32 */
+                numericCode?: number;
+                numericCodeAsString?: string;
+            };
+            /** Format: date-time */
+            date?: string;
+            /** Format: date-time */
+            timestamp?: string;
+            flag?: boolean;
+            text?: string;
+        };
+        WorkflowAttributeDescription: {
+            /** @description Name of the attribute. Unique per workflow. */
+            name: string;
+            parentWorkflow?: components["schemas"]["Workflow"];
+            /** @enum {string} */
+            refType?: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
+            /** @enum {string} */
+            attrType?: "INTEGER" | "FLOATING" | "ENUMERATION" | "DECIMAL" | "CURRENCY" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
+            expression?: components["schemas"]["WorkflowAttributeExprRule"];
+            regex?: components["schemas"]["WorkflowAttributeRegexRule"];
+            /** Format: int32 */
+            maxLength?: number;
+            enumDescription?: string[];
+        };
+        WorkflowAttributeExprRule: {
+            rule?: string;
+            description?: string;
+            errorText?: string;
+        };
+        WorkflowAttributeRegexRule: {
+            rule?: string;
+            description?: string;
+            errorText?: string;
+        };
+        WorkflowAttributeResponseDTO: {
+            attribute?: components["schemas"]["WorkflowAttribute"];
+            description?: components["schemas"]["WorkflowAttributeDescription"];
+        };
+        NewWorkflowDTO: {
+            /** @description Name of the entity, max of 50 characters. */
+            name: string;
+        };
+        NewWorkflowStateDTO: {
+            /** @description Name of the entity, max of 50 characters. */
+            name: string;
+        };
+        NewWorkflowEntityDTO: {
+            /** @description Name of the entity, max of 50 characters. */
+            name: string;
+        };
+        WorkflowEntity: {
+            /**
+             * Format: int32
+             * @description Numeric id of the entity. Generated on creation.
+             */
+            id?: number;
+            /** @description Name of the entity, max of 50 characters. */
+            name: string;
+            /**
+             * Format: int32
+             * @description Id of the user that created the entity.
+             */
+            userId: number;
+            /**
+             * Format: int32
+             * @description Id of the client that owns the entity.
+             */
+            clientId: number;
+            /** Format: date-time */
+            creationTime: string;
+            /** Format: date-time */
+            updateTime: string;
+            /** Format: date-time */
+            deletionTime?: string;
+            workflow?: components["schemas"]["Workflow"];
+            currentState?: components["schemas"]["WorkflowState"];
+            /** Format: int32 */
+            workflowId?: number;
+            /** Format: int32 */
+            currentStateId?: number;
+        };
+        NewWorkflowAttributeDescriptionDTO: {
+            name?: string;
+            /** Format: int32 */
+            parentWorkflowId?: number;
+            /** @enum {string} */
+            refType?: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
+            /** @enum {string} */
+            attrType?: "INTEGER" | "FLOATING" | "ENUMERATION" | "DECIMAL" | "CURRENCY" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
+            expression?: components["schemas"]["WorkflowAttributeExprRule"];
+            regex?: components["schemas"]["WorkflowAttributeRegexRule"];
+            enumDescription?: string[];
+        };
+        NewChangeStateRulesDTO: {
+            /**
+             * Format: int32
+             * @description Id of the workflow state that the entity is in.
+             */
+            fromId: number;
+            /**
+             * Format: int32
+             * @description Id of the workflow state that the entity will go to.
+             */
+            toId: number;
+            /** @description The expressions that need to return true so the change may happen */
+            expressions: string[];
+        };
+        WorkflowWithStatesDTO: {
+            workflow?: components["schemas"]["Workflow"];
+            states?: components["schemas"]["WorkflowState"][];
+        };
+        PageWorkflowEntity: {
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            pageable?: components["schemas"]["PageableObject"];
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["WorkflowEntity"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"][];
+            /** Format: int32 */
+            numberOfElements?: number;
+            first?: boolean;
+            last?: boolean;
+            empty?: boolean;
+        };
+        PageableObject: {
+            paged?: boolean;
+            /** Format: int32 */
+            pageNumber?: number;
+            /** Format: int32 */
+            pageSize?: number;
+            /** Format: int64 */
+            offset?: number;
+            sort?: components["schemas"]["SortObject"][];
+            unpaged?: boolean;
+        };
+        SortObject: {
+            direction?: string;
+            nullHandling?: string;
+            ascending?: boolean;
+            property?: string;
+            ignoreCase?: boolean;
         };
     };
     responses: never;
@@ -67,6 +513,113 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    setConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowConfigDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Workflow"];
+                };
+            };
+        };
+    };
+    setAttribute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: number;
+                attributeName: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewWorkflowAttributeDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowAttributeResponseDTO"];
+                };
+            };
+        };
+    };
+    setAttribute_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stateId: number;
+                attributeName: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewWorkflowAttributeDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowAttributeResponseDTO"];
+                };
+            };
+        };
+    };
+    setAttribute_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityId: number;
+                attributeName: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewWorkflowAttributeDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowAttributeResponseDTO"];
+                };
+            };
+        };
+    };
     createWorkflow: {
         parameters: {
             query?: never;
@@ -91,6 +644,172 @@ export interface operations {
             };
         };
     };
+    listStates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowWithStatesDTO"];
+                };
+            };
+        };
+    };
+    createWorkflow_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewWorkflowStateDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowState"];
+                };
+            };
+        };
+    };
+    listByWorkflowId: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                workflowId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageWorkflowEntity"];
+                };
+            };
+        };
+    };
+    createWorkflow_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewWorkflowEntityDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowEntity"];
+                };
+            };
+        };
+    };
+    createAttribute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewWorkflowAttributeDescriptionDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewChangeStateRulesDTO"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    moveState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityId: number;
+                newStateId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getWorkflow: {
         parameters: {
             query?: never;
@@ -109,6 +828,75 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Workflow"];
+                };
+            };
+        };
+    };
+    getState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowStateId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowState"];
+                };
+            };
+        };
+    };
+    listByStateId: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                workflowStateId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageWorkflowEntity"];
+                };
+            };
+        };
+    };
+    getWorkflow_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowEntityId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowEntity"];
                 };
             };
         };

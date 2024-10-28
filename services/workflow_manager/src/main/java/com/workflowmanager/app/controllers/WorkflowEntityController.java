@@ -1,6 +1,7 @@
 package com.workflowmanager.app.controllers;
 
 import com.workflowmanager.app.controllers.dtos.WorkflowAttributeResponseDTO;
+import com.workflowmanager.app.controllers.dtos.WorkflowAttributeWithDescriptionListDTO;
 import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.NewWorkflowAttributeDTO;
@@ -17,6 +18,7 @@ import com.workflowmanager.app.repositories.WorkflowEntityRepository;
 import com.workflowmanager.app.repositories.WorkflowRepository;
 import com.workflowmanager.app.repositories.WorkflowStateRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Controller;
@@ -98,7 +100,7 @@ public class WorkflowEntityController {
         .orElseThrow();
   }
 
-  @PutMapping("workflows-entities/{entityId}/attributes/{attributeName}")
+  @PutMapping("workflow-entities/{entityId}/attributes/{attributeName}")
   @ResponseBody
   public WorkflowAttributeResponseDTO setAttribute(
       @PathVariable("entityId") Integer entityId,
@@ -146,5 +148,24 @@ public class WorkflowEntityController {
     entity.setCurrentState(nextState);
 
     this.workflowEntityRepository.save(entity);
+  }
+
+  @GetMapping("workflow-entities/{entityId}/attributes")
+  @ResponseBody
+  public WorkflowAttributeWithDescriptionListDTO listAttributes(
+      @PathVariable("entityId") Integer entityId) {
+    WorkflowEntity entity =
+        ErrorUtils.onEmpty404(
+            this.workflowEntityRepository.getByIdAndClientId(entityId, 1), entityId);
+
+    // TODO: how to concurrent?
+    List<WorkflowAttributeDescription> descriptions =
+        this.attributeDescriptionRepository.list(
+            entity.getWorkflowId(), WorkflowAttributeReferenceType.WORKFLOW_ENTITY);
+    List<WorkflowAttribute> attributes =
+        this.workflowAttributeRepository.list(
+            entity.getWorkflowId(), WorkflowAttributeReferenceType.WORKFLOW_ENTITY);
+
+    return new WorkflowAttributeWithDescriptionListDTO(attributes, descriptions);
   }
 }

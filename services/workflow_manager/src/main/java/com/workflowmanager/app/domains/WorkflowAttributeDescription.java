@@ -65,11 +65,16 @@ public class WorkflowAttributeDescription {
       NewWorkflowAttributeDescriptionDTO dto, Workflow parentWorkflow) {
     this.name = dto.name;
     this.parentWorkflow = parentWorkflow;
+    if (parentWorkflow != null) this.parentWorkflowId = parentWorkflow.getId();
     this.refType = dto.refType;
     this.attrType = dto.attrType;
     this.expression = dto.expression;
     this.regex = dto.regex;
     this.enumDescription = dto.enumDescription;
+  }
+
+  public Integer getParentWorkflowId() {
+    return this.parentWorkflowId;
   }
 
   public Integer getMaxLength() {

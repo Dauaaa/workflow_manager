@@ -13,11 +13,12 @@ Output is named like java_bin + "_open_api.yaml"
         srcs = [java_bin],
         outs = [java_bin + "_open_api.yaml"],
         # TODO: getting the Tomcat output is devilishly delicate don't care for now
+        # if this stops working bump the sleep a bit... XD
         cmd = """
 # remove .jar files that might come with the target
 # reusing generated file to simplify cmd
 $$(echo $(locations {java_bin}) | sed 's/\\.jar//g' | sed 's/\\s/\\n/g' | uniq) --server.port=0 > $@ &
-sleep 5
+sleep 10
 # get port from process stdout
 PORT="$$(sed -n 's/.*Tomcat started on port \\([0-9]*\\).*/\\1/p' $@)"
 # unlink $@, the process will still send its output to its current fd

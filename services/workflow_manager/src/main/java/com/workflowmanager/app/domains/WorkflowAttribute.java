@@ -17,6 +17,16 @@ import org.springframework.web.server.ResponseStatusException;
 public class WorkflowAttribute {
   @EmbeddedId private WorkflowAttributeId id;
 
+  public String getDescriptionName() {
+    if (this.id.getDescription() == null) return null;
+    return this.id.getDescription().getName();
+  }
+
+  public Integer getDescriptionParentWorkflowId() {
+    if (this.id.getDescription() == null) return null;
+    return this.id.getDescription().getParentWorkflowId();
+  }
+
   // values
   private Long integer;
   private Double floating;

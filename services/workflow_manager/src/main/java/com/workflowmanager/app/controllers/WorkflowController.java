@@ -1,6 +1,7 @@
 package com.workflowmanager.app.controllers;
 
 import com.workflowmanager.app.controllers.dtos.WorkflowAttributeResponseDTO;
+import com.workflowmanager.app.controllers.dtos.WorkflowAttributeWithDescriptionListDTO;
 import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.NewWorkflowAttributeDTO;
@@ -17,6 +18,7 @@ import com.workflowmanager.app.repositories.WorkflowAttributeDescriptionReposito
 import com.workflowmanager.app.repositories.WorkflowAttributeRepository;
 import com.workflowmanager.app.repositories.WorkflowRepository;
 import com.workflowmanager.app.repositories.WorkflowStateRepository;
+import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -127,5 +129,24 @@ public class WorkflowController {
     this.workflowAttributeRepository.save(attribute);
 
     return new WorkflowAttributeResponseDTO(attribute, attributeDescription);
+  }
+
+  @GetMapping("workflows/{workflowId}/attributes")
+  @ResponseBody
+  public WorkflowAttributeWithDescriptionListDTO listAttributes(
+      @PathVariable("workflowId") Integer workflowId) {
+    Workflow workflow =
+        ErrorUtils.onEmpty404(
+            this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
+
+    // TODO: how to concurrent?
+    List<WorkflowAttributeDescription> descriptions =
+        this.attributeDescriptionRepository.list(
+            workflow.getId(), WorkflowAttributeReferenceType.WORKFLOW);
+    List<WorkflowAttribute> attributes =
+        this.workflowAttributeRepository.list(
+            workflow.getId(), WorkflowAttributeReferenceType.WORKFLOW);
+
+    return new WorkflowAttributeWithDescriptionListDTO(attributes, descriptions);
   }
 }

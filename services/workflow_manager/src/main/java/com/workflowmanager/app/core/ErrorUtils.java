@@ -21,6 +21,7 @@ public class ErrorUtils {
   }
 
   public static <T> T onEmpty404(Optional<T> v, Serializable id) {
+    // TODO: send T class
     return v.orElseThrow(() -> ErrorUtils.notFoundById(v.getClass(), id));
   }
 

@@ -4,9 +4,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Currency;
 import java.util.Date;
+import org.springframework.lang.NonNull;
 
 public class NewWorkflowAttributeDTO {
-  public Integer parentWorkflowId;
+  @NonNull public Integer parentWorkflowId;
 
   public Long integer;
   public Double floating;

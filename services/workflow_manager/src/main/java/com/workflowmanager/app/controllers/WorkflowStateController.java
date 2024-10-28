@@ -1,6 +1,7 @@
 package com.workflowmanager.app.controllers;
 
 import com.workflowmanager.app.controllers.dtos.WorkflowAttributeResponseDTO;
+import com.workflowmanager.app.controllers.dtos.WorkflowAttributeWithDescriptionListDTO;
 import com.workflowmanager.app.controllers.dtos.WorkflowWithStatesDTO;
 import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.ErrorUtils;
@@ -109,7 +110,7 @@ public class WorkflowStateController {
     this.changeStateRulesRepository.save(rules);
   }
 
-  @PutMapping("workflows-states/{stateId}/attributes/{attributeName}")
+  @PutMapping("workflow-states/{stateId}/attributes/{attributeName}")
   @ResponseBody
   public WorkflowAttributeResponseDTO setAttribute(
       @PathVariable("stateId") Integer stateId,
@@ -137,5 +138,23 @@ public class WorkflowStateController {
     this.workflowAttributeRepository.save(attribute);
 
     return new WorkflowAttributeResponseDTO(attribute, attributeDescription);
+  }
+
+  @GetMapping("workflow-states/{stateId}/attributes")
+  @ResponseBody
+  public WorkflowAttributeWithDescriptionListDTO listAttributes(
+      @PathVariable("stateId") Integer stateId) {
+    WorkflowState state =
+        ErrorUtils.onEmpty404(this.workflowStateRepository.getByIdAndClientId(stateId, 1), stateId);
+
+    // TODO: how to concurrent?
+    List<WorkflowAttributeDescription> descriptions =
+        this.attributeDescriptionRepository.list(
+            state.getWorkflowId(), WorkflowAttributeReferenceType.WORKFLOW);
+    List<WorkflowAttribute> attributes =
+        this.workflowAttributeRepository.list(
+            state.getWorkflowId(), WorkflowAttributeReferenceType.WORKFLOW);
+
+    return new WorkflowAttributeWithDescriptionListDTO(attributes, descriptions);
   }
 }
