@@ -15,6 +15,14 @@ public interface WorkflowAttributeDescriptionRepository
 
   @Query(
       "SELECT wad FROM WorkflowAttributeDescription wad WHERE wad.name = :name AND"
+          + " wad.parentWorkflow.id = :workflowId AND wad.refType = :refType")
+  Optional<WorkflowAttributeDescription> getByNameParentWorkflowIdAndRefType(
+      @Param("name") String name,
+      @Param("workflowId") Integer parentWorkflowId,
+      @Param("refType") WorkflowAttributeReferenceType refType);
+
+  @Query(
+      "SELECT wad FROM WorkflowAttributeDescription wad WHERE wad.name = :name AND"
           + " wad.parentWorkflow.id = :workflowId")
   Optional<WorkflowAttributeDescription> getByNameParentWorkflowId(
       @Param("name") String name, @Param("workflowId") Integer parentWorkflowId);

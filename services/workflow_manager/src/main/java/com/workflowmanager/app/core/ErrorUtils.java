@@ -110,4 +110,9 @@ public class ErrorUtils {
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, message);
     }
   }
+
+  public static <T> void conflictIfExists(Optional<T> value) throws ResponseStatusException {
+    if (value.isPresent())
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Resource already exists");
+  }
 }

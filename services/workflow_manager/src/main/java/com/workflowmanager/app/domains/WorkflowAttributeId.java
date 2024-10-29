@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.workflowmanager.app.domains.WorkflowAttributeDescription.WorkflowAttributeReferenceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -20,11 +22,13 @@ public class WorkflowAttributeId implements Serializable {
   private Workflow parentWorkflow;
 
   @Schema(description = "The id of the entity referenced. baseEntityId + refType finds the entity")
+  @NotNull
   private Integer baseEntityId;
 
   @Schema(
       description =
           "The type of entity of the entity referenced. baseEntityId + refType finds the entity")
+  @Enumerated
   private WorkflowAttributeReferenceType refType;
 
   public WorkflowAttributeId(

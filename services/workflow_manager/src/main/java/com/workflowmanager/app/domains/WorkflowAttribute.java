@@ -32,8 +32,10 @@ public class WorkflowAttribute {
   private Long integer;
   private Double floating;
   private String enumeration;
+
   @JsonFormat(shape = JsonFormat.Shape.STRING)
   private BigDecimal decimal;
+
   private Currency currency;
   private Date date;
   private Instant timestamp;

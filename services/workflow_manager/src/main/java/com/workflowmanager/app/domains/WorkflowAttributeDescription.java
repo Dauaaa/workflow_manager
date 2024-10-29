@@ -18,6 +18,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.Type;
 
 @Entity
@@ -44,7 +45,7 @@ public class WorkflowAttributeDescription {
           "Workflow this attribute is part of, it's not related to the value it references")
   private Integer parentWorkflowId;
 
-  private WorkflowAttributeReferenceType refType;
+  @Immutable private WorkflowAttributeReferenceType refType;
   private WorkflowAttributeType attrType;
 
   @Type(JsonType.class)

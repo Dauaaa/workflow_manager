@@ -90,12 +90,16 @@ public class WorkflowController {
 
   @PostMapping("workflows/{workflowId}/attributes")
   @ResponseBody
-  public void createAttribute(
+  public void createAttributeDescription(
       @PathVariable("workflowId") Integer workflowId,
       @RequestBody NewWorkflowAttributeDescriptionDTO attributeDescriptionDTO) {
     Workflow workflow =
         ErrorUtils.onEmpty404(
             this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
+
+    ErrorUtils.conflictIfExists(
+        this.attributeDescriptionRepository.getByNameParentWorkflowId(
+            attributeDescriptionDTO.name, workflow.getId()));
 
     WorkflowAttributeDescription attributeDescription =
         new WorkflowAttributeDescription(attributeDescriptionDTO, workflow);
@@ -114,8 +118,8 @@ public class WorkflowController {
             this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
     WorkflowAttributeDescription attributeDescription =
         ErrorUtils.onEmpty404(
-            this.attributeDescriptionRepository.getByNameParentWorkflowId(
-                attributeName, workflowId),
+            this.attributeDescriptionRepository.getByNameParentWorkflowIdAndRefType(
+                attributeName, workflowId, WorkflowAttributeReferenceType.WORKFLOW),
             attributeName);
 
     WorkflowAttribute attribute =
@@ -146,6 +150,8 @@ public class WorkflowController {
     List<WorkflowAttribute> attributes =
         this.workflowAttributeRepository.list(
             workflow.getId(), WorkflowAttributeReferenceType.WORKFLOW);
+
+    System.out.println(String.format("%s %s", descriptions.size(), attributes.size()));
 
     return new WorkflowAttributeWithDescriptionListDTO(attributes, descriptions);
   }

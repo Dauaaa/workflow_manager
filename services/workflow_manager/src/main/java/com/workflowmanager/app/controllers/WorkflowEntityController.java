@@ -84,7 +84,7 @@ public class WorkflowEntityController {
 
   @PostMapping("workflows/{workflowId}/workflow-entities")
   @ResponseBody
-  public WorkflowEntity createWorkflow(
+  public WorkflowEntity createEntity(
       @PathVariable("workflowId") Integer workflowId,
       @RequestBody NewWorkflowEntityDTO newWorkflowEntity) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
@@ -115,7 +115,8 @@ public class WorkflowEntityController {
             entity.getWorkflowId());
     WorkflowAttributeDescription attributeDescription =
         ErrorUtils.onEmpty404(
-            this.attributeDescriptionRepository.getByNameParentWorkflowId(attributeName, entityId),
+            this.attributeDescriptionRepository.getByNameParentWorkflowIdAndRefType(
+                attributeName, entityId, WorkflowAttributeReferenceType.WORKFLOW_ENTITY),
             attributeName);
 
     WorkflowAttribute attribute =
@@ -164,7 +165,7 @@ public class WorkflowEntityController {
             entity.getWorkflowId(), WorkflowAttributeReferenceType.WORKFLOW_ENTITY);
     List<WorkflowAttribute> attributes =
         this.workflowAttributeRepository.list(
-            entity.getWorkflowId(), WorkflowAttributeReferenceType.WORKFLOW_ENTITY);
+            entity.getId(), WorkflowAttributeReferenceType.WORKFLOW_ENTITY);
 
     return new WorkflowAttributeWithDescriptionListDTO(attributes, descriptions);
   }

@@ -71,7 +71,7 @@ public class WorkflowStateController {
 
   @PostMapping("workflows/{workflowId}/workflow-states")
   @ResponseBody
-  public WorkflowState createWorkflow(
+  public WorkflowState createState(
       @PathVariable("workflowId") Integer workflowId,
       @RequestBody NewWorkflowStateDTO newWorkflowState) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
@@ -124,7 +124,8 @@ public class WorkflowStateController {
             state.getWorkflowId());
     WorkflowAttributeDescription attributeDescription =
         ErrorUtils.onEmpty404(
-            this.attributeDescriptionRepository.getByNameParentWorkflowId(attributeName, stateId),
+            this.attributeDescriptionRepository.getByNameParentWorkflowIdAndRefType(
+                attributeName, stateId, WorkflowAttributeReferenceType.WORKFLOW_STATE),
             attributeName);
 
     WorkflowAttribute attribute =
@@ -150,10 +151,10 @@ public class WorkflowStateController {
     // TODO: how to concurrent?
     List<WorkflowAttributeDescription> descriptions =
         this.attributeDescriptionRepository.list(
-            state.getWorkflowId(), WorkflowAttributeReferenceType.WORKFLOW);
+            state.getWorkflowId(), WorkflowAttributeReferenceType.WORKFLOW_STATE);
     List<WorkflowAttribute> attributes =
         this.workflowAttributeRepository.list(
-            state.getWorkflowId(), WorkflowAttributeReferenceType.WORKFLOW);
+            state.getId(), WorkflowAttributeReferenceType.WORKFLOW_STATE);
 
     return new WorkflowAttributeWithDescriptionListDTO(attributes, descriptions);
   }

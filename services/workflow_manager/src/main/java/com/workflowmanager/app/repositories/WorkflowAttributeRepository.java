@@ -12,9 +12,9 @@ public interface WorkflowAttributeRepository extends Repository<WorkflowAttribut
   void save(WorkflowAttribute workflow);
 
   @Query(
-      "SELECT wa FROM WorkflowAttribute wa WHERE wa.id.description.parentWorkflow.id ="
-          + " :parentWorkflowId AND wa.id.description.refType = :refType")
+      "SELECT wa FROM WorkflowAttribute wa WHERE wa.id.baseEntityId ="
+          + " :baseEntityId AND wa.id.description.refType = :refType")
   List<WorkflowAttribute> list(
-      @Param("parentWorkflowId") Integer parentWorkflowId,
+      @Param("baseEntityId") Integer baseEntityId,
       @Param("refType") WorkflowAttributeReferenceType refType);
 }
