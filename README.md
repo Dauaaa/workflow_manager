@@ -100,6 +100,11 @@ Showcase some of my current developer skills and knowledge.
 
 ## Problems
 - package.json defining dep versions all over the place
+- how do I define http errors for the java services?
 
 ## Don't know
 - all ts/tsx files are copied when `vite_ts_project` is used. This is necessary so vite can see the files
+
+## Tips in this repo
+- if openapi gen fails, bump the sleep time
+- if java lsp fails, make build //... work - (this took me a while to figure out)

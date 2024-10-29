@@ -3,8 +3,10 @@
   "private": true,
   "scripts": {},
   "dependencies": {
+    "dayjs": "^1.11.13",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "4.2.4",
@@ -25,6 +27,7 @@
     "tailwindcss": "^3.4.13",
     "typescript": "4.9.3",
     "vite": "^5.4.9",
-    "workflow_manager_api": "workspace:*"
+    "workflow_manager_api": "workspace:*",
+    "common_schemas": "workspace:*"
   }
 }

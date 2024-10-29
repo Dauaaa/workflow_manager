@@ -36,7 +36,7 @@ vite(
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
-    visibility = ["//visibility:public"],
+    visibility = ["//:__subpackages__"],
 )
 
 js_library(
@@ -48,4 +48,10 @@ js_library(
         "tailwind.config.ts",
         "vite.config.mjs",
     ],
+)
+
+js_library(
+    name = "type_declarations",
+    srcs = glob(["*.d.ts"]),
+    visibility = ["//:__subpackages__"],
 )

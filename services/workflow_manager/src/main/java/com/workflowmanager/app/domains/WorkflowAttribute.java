@@ -1,5 +1,6 @@
 package com.workflowmanager.app.domains;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.WorkflowAttributeDescription.WorkflowAttributeReferenceType;
 import com.workflowmanager.app.domains.WorkflowAttributeDescription.WorkflowAttributeType;
@@ -31,6 +32,7 @@ public class WorkflowAttribute {
   private Long integer;
   private Double floating;
   private String enumeration;
+  @JsonFormat(shape = JsonFormat.Shape.STRING)
   private BigDecimal decimal;
   private Currency currency;
   private Date date;

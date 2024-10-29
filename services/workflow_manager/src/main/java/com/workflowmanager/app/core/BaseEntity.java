@@ -25,6 +25,7 @@ public abstract class BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Schema(description = "Numeric id of the entity. Generated on creation.")
+  @NotNull
   private Integer id;
 
   @Schema(description = "Name of the entity, max of 50 characters.")

@@ -36,7 +36,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workflows-states/{stateId}/attributes/{attributeName}": {
+    "/workflow-states/{stateId}/attributes/{attributeName}": {
         parameters: {
             query?: never;
             header?: never;
@@ -52,7 +52,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workflows-entities/{entityId}/attributes/{attributeName}": {
+    "/workflow-entities/{entityId}/attributes/{attributeName}": {
         parameters: {
             query?: never;
             header?: never;
@@ -124,7 +124,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["listAttributes"];
         put?: never;
         post: operations["createAttribute"];
         delete?: never;
@@ -215,6 +215,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workflow-states/{stateId}/attributes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAttributes_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflow-entities/{workflowEntityId}": {
         parameters: {
             query?: never;
@@ -224,6 +240,22 @@ export interface paths {
         };
         /** @description Create an entity for a workflow */
         get: operations["getWorkflow_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflow-entities/{entityId}/attributes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAttributes_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -258,7 +290,7 @@ export interface components {
              * Format: int32
              * @description Numeric id of the entity. Generated on creation.
              */
-            id?: number;
+            id: number;
             /** @description Name of the entity, max of 50 characters. */
             name: string;
             /**
@@ -307,6 +339,9 @@ export interface components {
             timestamp?: string;
             flag?: boolean;
             text?: string;
+            descriptionName?: string;
+            /** Format: int32 */
+            descriptionParentWorkflowId?: number;
         };
         /** @description Starting states for all entities in this workflow. */
         WorkflowState: {
@@ -314,7 +349,7 @@ export interface components {
              * Format: int32
              * @description Numeric id of the entity. Generated on creation.
              */
-            id?: number;
+            id: number;
             /** @description Name of the entity, max of 50 characters. */
             name: string;
             /**
@@ -371,6 +406,11 @@ export interface components {
             /** @description Name of the attribute. Unique per workflow. */
             name: string;
             parentWorkflow?: components["schemas"]["Workflow"];
+            /**
+             * Format: int32
+             * @description Workflow this attribute is part of, it's not related to the value it references
+             */
+            parentWorkflowId?: number;
             /** @enum {string} */
             refType?: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
             /** @enum {string} */
@@ -393,7 +433,7 @@ export interface components {
         };
         WorkflowAttributeResponseDTO: {
             attribute?: components["schemas"]["WorkflowAttribute"];
-            description?: components["schemas"]["WorkflowAttributeDescription"];
+            description: components["schemas"]["WorkflowAttributeDescription"];
         };
         NewWorkflowDTO: {
             /** @description Name of the entity, max of 50 characters. */
@@ -412,7 +452,7 @@ export interface components {
              * Format: int32
              * @description Numeric id of the entity. Generated on creation.
              */
-            id?: number;
+            id: number;
             /** @description Name of the entity, max of 50 characters. */
             name: string;
             /**
@@ -503,6 +543,9 @@ export interface components {
             ascending?: boolean;
             property?: string;
             ignoreCase?: boolean;
+        };
+        WorkflowAttributeWithDescriptionListDTO: {
+            items?: components["schemas"]["WorkflowAttributeResponseDTO"][];
         };
     };
     responses: never;
@@ -743,6 +786,28 @@ export interface operations {
             };
         };
     };
+    listAttributes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowAttributeWithDescriptionListDTO"];
+                };
+            };
+        };
+    };
     createAttribute: {
         parameters: {
             query?: never;
@@ -879,6 +944,28 @@ export interface operations {
             };
         };
     };
+    listAttributes_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stateId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowAttributeWithDescriptionListDTO"];
+                };
+            };
+        };
+    };
     getWorkflow_1: {
         parameters: {
             query?: never;
@@ -897,6 +984,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WorkflowEntity"];
+                };
+            };
+        };
+    };
+    listAttributes_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkflowAttributeWithDescriptionListDTO"];
                 };
             };
         };

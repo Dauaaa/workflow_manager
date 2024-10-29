@@ -1,0 +1,13 @@
+{
+  "name": "common_schemas",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.13",
+    "zod": "^3.23.8"
+  }
+}
