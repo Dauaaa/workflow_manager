@@ -83,7 +83,6 @@ Showcase some of my current developer skills and knowledge.
         - [ ] float
         - [ ] enum
         - [ ] decimal
-        - [ ] currency
         - [ ] date
         - [ ] timestamp
         - [ ] boolean

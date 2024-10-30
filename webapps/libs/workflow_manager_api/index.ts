@@ -93,7 +93,7 @@ export interface paths {
         };
         get: operations["listStates"];
         put?: never;
-        post: operations["createWorkflow_1"];
+        post: operations["createState"];
         delete?: never;
         options?: never;
         head?: never;
@@ -110,7 +110,7 @@ export interface paths {
         /** @description List all child entities of a workflow */
         get: operations["listByWorkflowId"];
         put?: never;
-        post: operations["createWorkflow_2"];
+        post: operations["createEntity"];
         delete?: never;
         options?: never;
         head?: never;
@@ -126,7 +126,7 @@ export interface paths {
         };
         get: operations["listAttributes"];
         put?: never;
-        post: operations["createAttribute"];
+        post: operations["createAttributeDescription"];
         delete?: never;
         options?: never;
         head?: never;
@@ -268,40 +268,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        WorkflowConfigDTO: {
+        RequestUpdateWorkflowConfig: {
             /**
              * Format: int32
              * @description The state must be owned by the Workflow (initialState.workflowId == workflow.id)
              */
             initialStateId?: number;
         };
-        ChangeStateRules: {
-            from: components["schemas"]["WorkflowState"];
-            to: components["schemas"]["WorkflowState"];
-            /** @description The expressions that need to return true so the change may happen */
-            expressions: string[];
+        ResponseWorkflow: {
             /** Format: int32 */
-            fromId?: number;
-            /** Format: int32 */
-            toId?: number;
-        };
-        Workflow: {
-            /**
-             * Format: int32
-             * @description Numeric id of the entity. Generated on creation.
-             */
             id: number;
-            /** @description Name of the entity, max of 50 characters. */
             name: string;
-            /**
-             * Format: int32
-             * @description Id of the user that created the entity.
-             */
+            /** Format: int32 */
             userId: number;
-            /**
-             * Format: int32
-             * @description Id of the client that owns the entity.
-             */
+            /** Format: int32 */
             clientId: number;
             /** Format: date-time */
             creationTime: string;
@@ -309,58 +289,66 @@ export interface components {
             updateTime: string;
             /** Format: date-time */
             deletionTime?: string;
-            initialState?: components["schemas"]["WorkflowState"];
             /** Format: int32 */
             initialStateId?: number;
-            /** @description Attributes for this workflow. */
-            attrs?: components["schemas"]["WorkflowAttribute"][];
         };
-        /** @description Attributes for this workflow. */
-        WorkflowAttribute: {
+        RequestNewAttribute: {
             /** Format: int64 */
             integer?: number;
             /** Format: double */
             floating?: number;
             enumeration?: string;
             decimal?: number;
-            currency?: {
-                currencyCode?: string;
-                displayName?: string;
-                symbol?: string;
-                /** Format: int32 */
-                defaultFractionDigits?: number;
-                /** Format: int32 */
-                numericCode?: number;
-                numericCodeAsString?: string;
-            };
             /** Format: date-time */
             date?: string;
             /** Format: date-time */
             timestamp?: string;
             flag?: boolean;
             text?: string;
-            descriptionName?: string;
-            /** Format: int32 */
-            descriptionParentWorkflowId?: number;
         };
-        /** @description Starting states for all entities in this workflow. */
-        WorkflowState: {
-            /**
-             * Format: int32
-             * @description Numeric id of the entity. Generated on creation.
-             */
-            id: number;
-            /** @description Name of the entity, max of 50 characters. */
+        ResponseAttribute: {
+            descriptionName: string;
+            /** Format: int32 */
+            parentWorkflowId: number;
+            /** Format: int32 */
+            baseEntityId: number;
+            /** Format: date-time */
+            creationTime: string;
+            /** Format: date-time */
+            updateTime: string;
+            /** Format: int64 */
+            integer?: number;
+            /** Format: double */
+            floating?: number;
+            enumeration?: string;
+            decimal?: string;
+            /** Format: date-time */
+            date?: string;
+            /** Format: date-time */
+            timestamp?: string;
+            flag?: boolean;
+            text?: string;
+        };
+        RequestNewWorkflow: {
             name: string;
-            /**
-             * Format: int32
-             * @description Id of the user that created the entity.
-             */
+        };
+        RequestNewWorkflowState: {
+            name: string;
+        };
+        ResponseChangeStateRules: {
+            /** Format: int32 */
+            fromId: number;
+            /** Format: int32 */
+            toId: number;
+            expressions: string[];
+        };
+        ResponseWorkflowState: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
             userId: number;
-            /**
-             * Format: int32
-             * @description Id of the client that owns the entity.
-             */
+            /** Format: int32 */
             clientId: number;
             /** Format: date-time */
             creationTime: string;
@@ -368,53 +356,41 @@ export interface components {
             updateTime: string;
             /** Format: date-time */
             deletionTime?: string;
-            workflow?: components["schemas"]["Workflow"];
             /** Format: int32 */
-            workflowId?: number;
-            fromRules?: components["schemas"]["ChangeStateRules"][];
-            toRules?: components["schemas"]["ChangeStateRules"][];
-            /** Format: int64 */
-            totalEntities?: number;
+            workflowId: number;
+            fromRules: components["schemas"]["ResponseChangeStateRules"][];
+            toRules: components["schemas"]["ResponseChangeStateRules"][];
         };
-        NewWorkflowAttributeDTO: {
+        RequestNewWorkflowEntity: {
+            name: string;
+        };
+        ResponseWorkflowEntity: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            userId: number;
+            /** Format: int32 */
+            clientId: number;
+            /** Format: date-time */
+            creationTime: string;
+            /** Format: date-time */
+            updateTime: string;
+            /** Format: date-time */
+            deletionTime?: string;
+            /** Format: int32 */
+            workflowId: number;
+            /** Format: int32 */
+            currentStateId: number;
+        };
+        RequestNewAttributeDescription: {
+            name: string;
             /** Format: int32 */
             parentWorkflowId: number;
-            /** Format: int64 */
-            integer?: number;
-            /** Format: double */
-            floating?: number;
-            enumeration?: string;
-            decimal?: number;
-            currency?: {
-                currencyCode?: string;
-                displayName?: string;
-                symbol?: string;
-                /** Format: int32 */
-                defaultFractionDigits?: number;
-                /** Format: int32 */
-                numericCode?: number;
-                numericCodeAsString?: string;
-            };
-            /** Format: date-time */
-            date?: string;
-            /** Format: date-time */
-            timestamp?: string;
-            flag?: boolean;
-            text?: string;
-        };
-        WorkflowAttributeDescription: {
-            /** @description Name of the attribute. Unique per workflow. */
-            name: string;
-            parentWorkflow?: components["schemas"]["Workflow"];
-            /**
-             * Format: int32
-             * @description Workflow this attribute is part of, it's not related to the value it references
-             */
-            parentWorkflowId?: number;
             /** @enum {string} */
-            refType?: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
+            refType: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
             /** @enum {string} */
-            attrType?: "INTEGER" | "FLOATING" | "ENUMERATION" | "DECIMAL" | "CURRENCY" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
+            attrType: "INTEGER" | "FLOATING" | "ENUMERATION" | "DECIMAL" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
             expression?: components["schemas"]["WorkflowAttributeExprRule"];
             regex?: components["schemas"]["WorkflowAttributeRegexRule"];
             /** Format: int32 */
@@ -431,63 +407,17 @@ export interface components {
             description?: string;
             errorText?: string;
         };
-        WorkflowAttributeResponseDTO: {
-            attribute?: components["schemas"]["WorkflowAttribute"];
-            description: components["schemas"]["WorkflowAttributeDescription"];
-        };
-        NewWorkflowDTO: {
-            /** @description Name of the entity, max of 50 characters. */
-            name: string;
-        };
-        NewWorkflowStateDTO: {
-            /** @description Name of the entity, max of 50 characters. */
-            name: string;
-        };
-        NewWorkflowEntityDTO: {
-            /** @description Name of the entity, max of 50 characters. */
-            name: string;
-        };
-        WorkflowEntity: {
-            /**
-             * Format: int32
-             * @description Numeric id of the entity. Generated on creation.
-             */
-            id: number;
-            /** @description Name of the entity, max of 50 characters. */
-            name: string;
-            /**
-             * Format: int32
-             * @description Id of the user that created the entity.
-             */
-            userId: number;
-            /**
-             * Format: int32
-             * @description Id of the client that owns the entity.
-             */
-            clientId: number;
-            /** Format: date-time */
-            creationTime: string;
-            /** Format: date-time */
-            updateTime: string;
-            /** Format: date-time */
-            deletionTime?: string;
-            workflow?: components["schemas"]["Workflow"];
-            currentState?: components["schemas"]["WorkflowState"];
+        ResponseAttributeDescription: {
             /** Format: int32 */
-            workflowId?: number;
-            /** Format: int32 */
-            currentStateId?: number;
-        };
-        NewWorkflowAttributeDescriptionDTO: {
-            name?: string;
-            /** Format: int32 */
-            parentWorkflowId?: number;
+            parentWorkflowId: number;
             /** @enum {string} */
-            refType?: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
+            refType: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
             /** @enum {string} */
-            attrType?: "INTEGER" | "FLOATING" | "ENUMERATION" | "DECIMAL" | "CURRENCY" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
+            attrType: "INTEGER" | "FLOATING" | "ENUMERATION" | "DECIMAL" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
             expression?: components["schemas"]["WorkflowAttributeExprRule"];
             regex?: components["schemas"]["WorkflowAttributeRegexRule"];
+            /** Format: int32 */
+            maxLength?: number;
             enumDescription?: string[];
         };
         NewChangeStateRulesDTO: {
@@ -504,11 +434,7 @@ export interface components {
             /** @description The expressions that need to return true so the change may happen */
             expressions: string[];
         };
-        WorkflowWithStatesDTO: {
-            workflow?: components["schemas"]["Workflow"];
-            states?: components["schemas"]["WorkflowState"][];
-        };
-        PageWorkflowEntity: {
+        PageResponseWorkflowEntity: {
             /** Format: int64 */
             totalElements?: number;
             /** Format: int32 */
@@ -516,7 +442,7 @@ export interface components {
             pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
-            content?: components["schemas"]["WorkflowEntity"][];
+            content?: components["schemas"]["ResponseWorkflowEntity"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"][];
@@ -544,8 +470,12 @@ export interface components {
             property?: string;
             ignoreCase?: boolean;
         };
-        WorkflowAttributeWithDescriptionListDTO: {
-            items?: components["schemas"]["WorkflowAttributeResponseDTO"][];
+        ResponseAttributeWithDescription: {
+            attr?: components["schemas"]["ResponseAttribute"];
+            description: components["schemas"]["ResponseAttributeDescription"];
+        };
+        ResponseAttributeWithDescriptionList: {
+            items: components["schemas"]["ResponseAttributeWithDescription"][];
         };
     };
     responses: never;
@@ -567,7 +497,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["WorkflowConfigDTO"];
+                "application/json": components["schemas"]["RequestUpdateWorkflowConfig"];
             };
         };
         responses: {
@@ -577,7 +507,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Workflow"];
+                    "*/*": components["schemas"]["ResponseWorkflow"];
                 };
             };
         };
@@ -594,7 +524,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NewWorkflowAttributeDTO"];
+                "application/json": components["schemas"]["RequestNewAttribute"];
             };
         };
         responses: {
@@ -604,7 +534,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowAttributeResponseDTO"];
+                    "*/*": components["schemas"]["ResponseAttribute"];
                 };
             };
         };
@@ -621,7 +551,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NewWorkflowAttributeDTO"];
+                "application/json": components["schemas"]["RequestNewAttribute"];
             };
         };
         responses: {
@@ -631,7 +561,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowAttributeResponseDTO"];
+                    "*/*": components["schemas"]["ResponseAttribute"];
                 };
             };
         };
@@ -648,7 +578,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NewWorkflowAttributeDTO"];
+                "application/json": components["schemas"]["RequestNewAttribute"];
             };
         };
         responses: {
@@ -658,7 +588,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowAttributeResponseDTO"];
+                    "*/*": components["schemas"]["ResponseAttribute"];
                 };
             };
         };
@@ -672,7 +602,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NewWorkflowDTO"];
+                "application/json": components["schemas"]["RequestNewWorkflow"];
             };
         };
         responses: {
@@ -682,7 +612,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Workflow"];
+                    "*/*": components["schemas"]["ResponseWorkflow"];
                 };
             };
         };
@@ -704,12 +634,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowWithStatesDTO"];
+                    "*/*": components["schemas"]["ResponseWorkflowState"][];
                 };
             };
         };
     };
-    createWorkflow_1: {
+    createState: {
         parameters: {
             query?: never;
             header?: never;
@@ -720,7 +650,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NewWorkflowStateDTO"];
+                "application/json": components["schemas"]["RequestNewWorkflowState"];
             };
         };
         responses: {
@@ -730,7 +660,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowState"];
+                    "*/*": components["schemas"]["ResponseWorkflowState"];
                 };
             };
         };
@@ -755,12 +685,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PageWorkflowEntity"];
+                    "*/*": components["schemas"]["PageResponseWorkflowEntity"];
                 };
             };
         };
     };
-    createWorkflow_2: {
+    createEntity: {
         parameters: {
             query?: never;
             header?: never;
@@ -771,7 +701,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NewWorkflowEntityDTO"];
+                "application/json": components["schemas"]["RequestNewWorkflowEntity"];
             };
         };
         responses: {
@@ -781,7 +711,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowEntity"];
+                    "*/*": components["schemas"]["ResponseWorkflowEntity"];
                 };
             };
         };
@@ -803,12 +733,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowAttributeWithDescriptionListDTO"];
+                    "*/*": components["schemas"]["ResponseAttributeWithDescriptionList"];
                 };
             };
         };
     };
-    createAttribute: {
+    createAttributeDescription: {
         parameters: {
             query?: never;
             header?: never;
@@ -819,7 +749,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NewWorkflowAttributeDescriptionDTO"];
+                "application/json": components["schemas"]["RequestNewAttributeDescription"];
             };
         };
         responses: {
@@ -828,7 +758,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": components["schemas"]["ResponseAttributeDescription"];
+                };
             };
         };
     };
@@ -892,7 +824,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Workflow"];
+                    "*/*": components["schemas"]["ResponseWorkflow"];
                 };
             };
         };
@@ -914,7 +846,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowState"];
+                    "*/*": components["schemas"]["ResponseWorkflowState"];
                 };
             };
         };
@@ -939,7 +871,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PageWorkflowEntity"];
+                    "*/*": components["schemas"]["PageResponseWorkflowEntity"];
                 };
             };
         };
@@ -961,7 +893,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowAttributeWithDescriptionListDTO"];
+                    "*/*": components["schemas"]["ResponseAttributeWithDescriptionList"];
                 };
             };
         };
@@ -983,7 +915,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowEntity"];
+                    "*/*": components["schemas"]["ResponseWorkflowEntity"];
                 };
             };
         };
@@ -1005,7 +937,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkflowAttributeWithDescriptionListDTO"];
+                    "*/*": components["schemas"]["ResponseAttributeWithDescriptionList"];
                 };
             };
         };

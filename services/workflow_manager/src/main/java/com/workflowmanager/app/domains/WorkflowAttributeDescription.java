@@ -132,7 +132,6 @@ public class WorkflowAttributeDescription {
     FLOATING,
     ENUMERATION,
     DECIMAL,
-    CURRENCY,
     DATE,
     TIMESTAMP,
     FLAG,

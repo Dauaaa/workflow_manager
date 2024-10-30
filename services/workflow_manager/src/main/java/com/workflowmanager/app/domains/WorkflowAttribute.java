@@ -5,10 +5,11 @@ import com.workflowmanager.app.domains.WorkflowAttributeDescription.WorkflowAttr
 import com.workflowmanager.app.domains.WorkflowAttributeDescription.WorkflowAttributeType;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Currency;
 import java.util.Date;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -16,6 +17,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Table(name = "workflow_attributes")
 public class WorkflowAttribute {
   @EmbeddedId private WorkflowAttributeId id;
+  private Instant creationTime;
+  private Instant updateTime;
 
   public String getDescriptionName() {
     if (this.id.getDescription() == null) return null;
@@ -31,12 +34,19 @@ public class WorkflowAttribute {
     return this.id.getBaseEntityId();
   }
 
+  public Instant getCreationTime() {
+      return this.creationTime;
+  }
+
+  public Instant getUpdateTime() {
+      return this.updateTime;
+  }
+
   // values
   private Long integer;
   private Double floating;
   private String enumeration;
   private BigDecimal decimal;
-  private Currency currency;
   private Date date;
   private Instant timestamp;
   private Boolean flag;
@@ -55,7 +65,6 @@ public class WorkflowAttribute {
     this.setFloating(attributeDTO.floating);
     this.setEnumeration(attributeDTO.enumeration);
     this.setDecimal(attributeDTO.decimal);
-    this.setCurrency(attributeDTO.currency);
     this.setDate(attributeDTO.date);
     this.setTimestamp(attributeDTO.timestamp);
     this.setFlag(attributeDTO.flag);
@@ -76,10 +85,6 @@ public class WorkflowAttribute {
 
   public BigDecimal getDecimal() {
     return this.decimal;
-  }
-
-  public Currency getCurrency() {
-    return this.currency;
   }
 
   public Date getDate() {
@@ -142,17 +147,6 @@ public class WorkflowAttribute {
     this.decimal = decimal;
   }
 
-  public void setCurrency(Currency currency) throws ResponseStatusException {
-    if (currency == null) {
-      this.currency = null;
-      return;
-    }
-
-    ErrorUtils.assertEq(WorkflowAttributeType.CURRENCY, this.id.getDescription().getAttrType());
-
-    this.currency = currency;
-  }
-
   public void setDate(Date date) throws ResponseStatusException {
     if (date == null) {
       this.date = null;
@@ -195,5 +189,16 @@ public class WorkflowAttribute {
     ErrorUtils.assertEq(WorkflowAttributeType.TEXT, this.id.getDescription().getAttrType());
 
     this.text = text;
+  }
+
+  @PrePersist
+  protected void onPersist() {
+    this.creationTime = Instant.now();
+    this.updateTime = Instant.now();
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
+    this.updateTime = Instant.now();
   }
 }

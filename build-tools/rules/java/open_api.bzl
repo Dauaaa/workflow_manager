@@ -10,7 +10,6 @@ Output is named like java_bin + "_open_api.yaml"
     native.genrule(
         name = name,
         # wrapper script for running the application has same name as label
-        srcs = [java_bin],
         outs = [java_bin + "_open_api.yaml"],
         # TODO: getting the Tomcat output is devilishly delicate don't care for now
         # if this stops working bump the sleep a bit... XD

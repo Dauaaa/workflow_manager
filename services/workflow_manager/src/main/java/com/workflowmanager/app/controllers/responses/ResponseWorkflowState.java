@@ -11,7 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ResponseWorkflowState extends ResponseBaseEntity {
   @NotNull public Integer workflowId;
   @NotNull public List<ResponseChangeStateRules> fromRules;
-  public List<ResponseChangeStateRules> toRules;
+  @NotNull public List<ResponseChangeStateRules> toRules;
 
   public ResponseWorkflowState(WorkflowState state) {
     super(state);

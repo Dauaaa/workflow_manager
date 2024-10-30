@@ -2,13 +2,14 @@ package com.workflowmanager.app.controllers.responses;
 
 import com.workflowmanager.app.domains.WorkflowAttribute;
 import com.workflowmanager.app.domains.WorkflowAttributeDescription;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.lang.NonNull;
 
 public class ResponseAttributeWithDescriptionList {
-  public List<ResponseAttributeWithDescription> items;
+  @NotNull public List<ResponseAttributeWithDescription> items;
 
   public ResponseAttributeWithDescriptionList(
       List<WorkflowAttribute> attributes, List<WorkflowAttributeDescription> descriptions) {
