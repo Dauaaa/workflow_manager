@@ -24,13 +24,8 @@ public class WorkflowState extends BaseEntity {
 
   @Transient private Integer workflowId;
 
-  @OneToMany
-  @JoinColumn(name = "from_id")
-  List<ChangeStateRules> fromRules;
-
-  @OneToMany
-  @JoinColumn(name = "to_id")
-  List<ChangeStateRules> toRules;
+  @OneToMany(mappedBy = "from")
+  List<ChangeStateRules> changeRules;
 
   @Transient private Long totalEntities;
 
@@ -43,8 +38,7 @@ public class WorkflowState extends BaseEntity {
 
     ErrorUtils.serverAssertNeq(that, null);
     this.workflow = that.workflow;
-    this.toRules = that.toRules;
-    this.fromRules = that.fromRules;
+    this.changeRules = that.changeRules;
 
     // transient
     this.workflowId = workflowId;
@@ -56,8 +50,7 @@ public class WorkflowState extends BaseEntity {
 
     this.workflow = workflow;
     this.workflowId = workflow.getId();
-    this.fromRules = new ArrayList<>();
-    this.toRules = new ArrayList<>();
+    this.changeRules = new ArrayList<>();
   }
 
   public Integer getWorkflowId() {
@@ -72,11 +65,7 @@ public class WorkflowState extends BaseEntity {
     return this.totalEntities;
   }
 
-  public List<ChangeStateRules> getFromRules() {
-    return this.fromRules;
-  }
-
-  public List<ChangeStateRules> getToRules() {
-    return this.toRules;
+  public List<ChangeStateRules> getChangeRules() {
+    return this.changeRules;
   }
 }

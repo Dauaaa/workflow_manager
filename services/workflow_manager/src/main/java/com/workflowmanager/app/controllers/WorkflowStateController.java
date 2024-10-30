@@ -1,6 +1,7 @@
 package com.workflowmanager.app.controllers;
 
 import com.workflowmanager.app.controllers.requests.RequestNewAttribute;
+import com.workflowmanager.app.controllers.requests.RequestSetChangeStateRule;
 import com.workflowmanager.app.controllers.requests.RequestNewWorkflowState;
 import com.workflowmanager.app.controllers.responses.ResponseAttribute;
 import com.workflowmanager.app.controllers.responses.ResponseAttributeWithDescriptionList;
@@ -93,27 +94,29 @@ public class WorkflowStateController {
     return new ResponseWorkflowState(workflowState);
   }
 
-  @PostMapping("workflow-states/rules")
+  @PostMapping("workflow-states/{workflowStateId}/rules")
   @ResponseBody
-  public void createRule(@RequestBody NewChangeStateRulesDTO changeStateRuleDTO) {
+  public void createRule(@PathVariable("workflowStateId") Integer workflowStateId, @RequestBody RequestSetChangeStateRule request) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
 
     WorkflowState from =
         ErrorUtils.onEmpty404(
             this.workflowStateRepository.getByIdAndClientIdWithWorkflow(
-                changeStateRuleDTO.fromId, auth.clientId),
-            changeStateRuleDTO.fromId);
+                workflowStateId, auth.clientId),
+            workflowStateId);
     WorkflowState to =
         ErrorUtils.onEmpty404(
-            this.workflowStateRepository.getByIdAndClientIdWithWorkflow(changeStateRuleDTO.toId, 1),
-            changeStateRuleDTO.toId);
+            this.workflowStateRepository.getByIdAndClientIdWithWorkflow(request.toId, auth.clientId),
+            request.toId);
 
     // just guarantee it exists
     ErrorUtils.onEmpty404(
-        this.workflowRepository.getByIdAndClientId(from.getWorkflow().getId(), 1),
+        this.workflowRepository.getByIdAndClientId(from.getWorkflow().getId(), auth.clientId),
         from.getWorkflow().getId());
 
-    ChangeStateRules rules = new ChangeStateRules(from, to, changeStateRuleDTO);
+    NewChangeStateRulesDTO dto = new NewChangeStateRulesDTO(request, from.getId());
+
+    ChangeStateRules rules = new ChangeStateRules(from, to, dto);
 
     this.changeStateRulesRepository.save(rules);
   }

@@ -10,9 +10,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -45,6 +47,10 @@ public class ChangeStateRules {
   @Column(name = "to_id2", nullable = false, updatable = false)
   private Integer toId;
 
+  private Instant creationTime;
+
+  private Instant updateTime;
+
   public ChangeStateRules() {}
 
   public ChangeStateRules(WorkflowState from, WorkflowState to, NewChangeStateRulesDTO dto)
@@ -62,6 +68,14 @@ public class ChangeStateRules {
     this.expressions = dto.expressions;
     this.fromId = from.getId();
     this.toId = to.getId();
+  }
+
+  public Instant getCreationTime() {
+      return this.creationTime;
+  }
+
+  public Instant getUpdateTime() {
+      return this.updateTime;
   }
 
   public WorkflowState getFrom() {
@@ -91,5 +105,12 @@ public class ChangeStateRules {
 
     this.fromId = from.getId();
     this.toId = to.getId();
+    this.updateTime = Instant.now();
+    this.creationTime = Instant.now();
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
+    this.updateTime = Instant.now();
   }
 }

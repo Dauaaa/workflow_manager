@@ -20,6 +20,7 @@ ts_project(
     deps = [
         "//:node_modules/openapi-typescript",
         "//:node_modules/typescript",
+
     ],
 )
 

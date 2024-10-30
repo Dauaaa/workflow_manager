@@ -133,7 +133,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workflow-states/rules": {
+    "/workflow-states/{workflowStateId}/rules": {
         parameters: {
             query?: never;
             header?: never;
@@ -341,6 +341,10 @@ export interface components {
             /** Format: int32 */
             toId: number;
             expressions: string[];
+            /** Format: date-time */
+            creationTime: string;
+            /** Format: date-time */
+            updateTime: string;
         };
         ResponseWorkflowState: {
             /** Format: int32 */
@@ -358,8 +362,7 @@ export interface components {
             deletionTime?: string;
             /** Format: int32 */
             workflowId: number;
-            fromRules: components["schemas"]["ResponseChangeStateRules"][];
-            toRules: components["schemas"]["ResponseChangeStateRules"][];
+            changeRules: components["schemas"]["ResponseChangeStateRules"][];
         };
         RequestNewWorkflowEntity: {
             name: string;
@@ -420,12 +423,7 @@ export interface components {
             maxLength?: number;
             enumDescription?: string[];
         };
-        NewChangeStateRulesDTO: {
-            /**
-             * Format: int32
-             * @description Id of the workflow state that the entity is in.
-             */
-            fromId: number;
+        RequestSetChangeStateRule: {
             /**
              * Format: int32
              * @description Id of the workflow state that the entity will go to.
@@ -768,12 +766,14 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                workflowStateId: number;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NewChangeStateRulesDTO"];
+                "application/json": components["schemas"]["RequestSetChangeStateRule"];
             };
         };
         responses: {

@@ -17,6 +17,7 @@ ts_project(
     deps = [
         ":node_modules/zod",
         ":node_modules/dayjs",
+        ":node_modules/decimal.js",
     ],
 )
 
@@ -30,6 +31,7 @@ npm_package(
     data = [
         ":node_modules/zod",
         ":node_modules/dayjs",
+        ":node_modules/decimal.js",
     ],
     out = "pkg",
 )
