@@ -1,7 +1,13 @@
 package com.workflowmanager.app.controllers;
 
-import com.workflowmanager.app.controllers.dtos.WorkflowAttributeResponseDTO;
-import com.workflowmanager.app.controllers.dtos.WorkflowAttributeWithDescriptionListDTO;
+import com.workflowmanager.app.controllers.requests.RequestNewAttribute;
+import com.workflowmanager.app.controllers.requests.RequestNewAttributeDescription;
+import com.workflowmanager.app.controllers.requests.RequestNewWorkflow;
+import com.workflowmanager.app.controllers.requests.RequestUpdateWorkflowConfig;
+import com.workflowmanager.app.controllers.responses.ResponseAttribute;
+import com.workflowmanager.app.controllers.responses.ResponseAttributeDescription;
+import com.workflowmanager.app.controllers.responses.ResponseAttributeWithDescriptionList;
+import com.workflowmanager.app.controllers.responses.ResponseWorkflow;
 import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.NewWorkflowAttributeDTO;
@@ -47,84 +53,104 @@ public class WorkflowController {
 
   @GetMapping("workflows/{workflowId}")
   @ResponseBody
-  public Workflow getWorkflow(@PathVariable("workflowId") Integer workflowId) {
-    return ErrorUtils.onEmpty404(
-        this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
+  public ResponseWorkflow getWorkflow(@PathVariable("workflowId") Integer workflowId) {
+    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+
+    return new ResponseWorkflow(
+        ErrorUtils.onEmpty404(
+            this.workflowRepository.getByIdAndClientId(workflowId, auth.clientId), workflowId));
   }
 
   @PostMapping("workflows")
   @ResponseBody
-  public Workflow createWorkflow(@RequestBody NewWorkflowDTO newWorkflow) {
+  public ResponseWorkflow createWorkflow(@RequestBody RequestNewWorkflow newWorkflow) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
 
-    Workflow workflow = new Workflow(newWorkflow, auth);
+    NewWorkflowDTO dto = new NewWorkflowDTO(newWorkflow, auth);
+    Workflow workflow = new Workflow(dto);
     this.workflowRepository.save(workflow);
 
-    return this.workflowRepository
-        .getByIdAndClientId(workflow.getId(), workflow.getClientId())
-        .orElseThrow();
+    return new ResponseWorkflow(workflow);
   }
 
   @PutMapping("workflows/{workflowId}/config")
   @ResponseBody
-  public Workflow setConfig(
-      @PathVariable("workflowId") Integer workflowId, @RequestBody WorkflowConfigDTO config) {
-    Workflow workflow = this.getWorkflow(workflowId);
+  public ResponseWorkflow setConfig(
+      @PathVariable("workflowId") Integer workflowId,
+      @RequestBody RequestUpdateWorkflowConfig request) {
+    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+
+    Workflow workflow =
+        ErrorUtils.onEmpty404(
+            this.workflowRepository.getByIdAndClientId(workflowId, auth.clientId));
 
     // resolve config handles (e.g. initialStateId -> initialState)
     WorkflowState initialState = null;
-    if (config.initialStateId != null) {
+    if (request.initialStateId != null) {
       initialState =
           ErrorUtils.onEmpty404(
-              this.workflowStateRepository.getByIdAndClientId(config.initialStateId, 1),
-              config.initialStateId);
+              this.workflowStateRepository.getByIdAndClientId(
+                  request.initialStateId, auth.clientId),
+              request.initialStateId);
     }
 
-    WorkflowConfig fullConfig = new WorkflowConfig(config, initialState);
+    WorkflowConfigDTO dto = new WorkflowConfigDTO(request);
+
+    WorkflowConfig fullConfig = new WorkflowConfig(dto, initialState);
     workflow.updateConfig(fullConfig);
 
     this.workflowRepository.save(workflow);
 
-    return this.getWorkflow(workflow.getId());
+    return new ResponseWorkflow(workflow);
   }
 
   @PostMapping("workflows/{workflowId}/attributes")
   @ResponseBody
-  public void createAttributeDescription(
+  public ResponseAttributeDescription createAttributeDescription(
       @PathVariable("workflowId") Integer workflowId,
-      @RequestBody NewWorkflowAttributeDescriptionDTO attributeDescriptionDTO) {
+      @RequestBody RequestNewAttributeDescription request) {
+    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+
     Workflow workflow =
         ErrorUtils.onEmpty404(
-            this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
+            this.workflowRepository.getByIdAndClientId(workflowId, auth.clientId), workflowId);
 
     ErrorUtils.conflictIfExists(
         this.attributeDescriptionRepository.getByNameParentWorkflowId(
-            attributeDescriptionDTO.name, workflow.getId()));
+            request.name, workflow.getId()));
+
+    NewWorkflowAttributeDescriptionDTO dto = new NewWorkflowAttributeDescriptionDTO(request);
 
     WorkflowAttributeDescription attributeDescription =
-        new WorkflowAttributeDescription(attributeDescriptionDTO, workflow);
+        new WorkflowAttributeDescription(dto, workflow);
 
     this.attributeDescriptionRepository.save(attributeDescription);
+
+    return new ResponseAttributeDescription(attributeDescription);
   }
 
   @PutMapping("workflows/{workflowId}/attributes/{attributeName}")
   @ResponseBody
-  public WorkflowAttributeResponseDTO setAttribute(
+  public ResponseAttribute setAttribute(
       @PathVariable("workflowId") Integer workflowId,
       @PathVariable("attributeName") String attributeName,
-      @RequestBody NewWorkflowAttributeDTO attributeDTO) {
+      @RequestBody RequestNewAttribute request) {
+    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+
     Workflow workflow =
         ErrorUtils.onEmpty404(
-            this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
+            this.workflowRepository.getByIdAndClientId(workflowId, auth.clientId), workflowId);
     WorkflowAttributeDescription attributeDescription =
         ErrorUtils.onEmpty404(
             this.attributeDescriptionRepository.getByNameParentWorkflowIdAndRefType(
                 attributeName, workflowId, WorkflowAttributeReferenceType.WORKFLOW),
             attributeName);
 
+    NewWorkflowAttributeDTO dto = new NewWorkflowAttributeDTO(request);
+
     WorkflowAttribute attribute =
         new WorkflowAttribute(
-            attributeDTO,
+            dto,
             attributeDescription,
             workflow,
             workflowId,
@@ -132,16 +158,18 @@ public class WorkflowController {
 
     this.workflowAttributeRepository.save(attribute);
 
-    return new WorkflowAttributeResponseDTO(attribute, attributeDescription);
+    return new ResponseAttribute(attribute);
   }
 
   @GetMapping("workflows/{workflowId}/attributes")
   @ResponseBody
-  public WorkflowAttributeWithDescriptionListDTO listAttributes(
+  public ResponseAttributeWithDescriptionList listAttributes(
       @PathVariable("workflowId") Integer workflowId) {
+    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+
     Workflow workflow =
         ErrorUtils.onEmpty404(
-            this.workflowRepository.getByIdAndClientId(workflowId, 1), workflowId);
+            this.workflowRepository.getByIdAndClientId(workflowId, auth.clientId), workflowId);
 
     // TODO: how to concurrent?
     List<WorkflowAttributeDescription> descriptions =
@@ -153,6 +181,6 @@ public class WorkflowController {
 
     System.out.println(String.format("%s %s", descriptions.size(), attributes.size()));
 
-    return new WorkflowAttributeWithDescriptionListDTO(attributes, descriptions);
+    return new ResponseAttributeWithDescriptionList(attributes, descriptions);
   }
 }

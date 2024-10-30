@@ -1,7 +1,6 @@
 package com.workflowmanager.app.domains;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.BaseEntity;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.workflow.WorkflowConfig;
@@ -38,8 +37,8 @@ public class Workflow extends BaseEntity {
     return this.attrs;
   }
 
-  public Workflow(NewWorkflowDTO newWorkflow, AuthorizationDTO auth) {
-    super(newWorkflow, auth);
+  public Workflow(NewWorkflowDTO newWorkflow) {
+    super(newWorkflow);
   }
 
   public WorkflowState getInitialState() {

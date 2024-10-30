@@ -10,10 +10,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.lang.reflect.Method;
 import java.time.Instant;
-import org.springframework.aop.AfterReturningAdvice;
-import org.springframework.aop.support.StaticMethodMatcherPointcut;
 import org.springframework.web.server.ResponseStatusException;
 
 @Schema(
@@ -67,10 +64,10 @@ public abstract class BaseEntity {
     this.deletionTime = that.getDeletionTime();
   }
 
-  public BaseEntity(NewBaseEntityDTO newBaseEntity, AuthorizationDTO auth) {
+  public BaseEntity(NewBaseEntityDTO newBaseEntity) {
     this.name = newBaseEntity.name;
-    this.clientId = auth.clientId;
-    this.userId = auth.userId;
+    this.clientId = newBaseEntity.clientId;
+    this.userId = newBaseEntity.userId;
   }
 
   public Integer getId() {
@@ -110,26 +107,5 @@ public abstract class BaseEntity {
   @PreUpdate
   protected void onUpdate() {
     this.updateTime = Instant.now();
-  }
-}
-
-class BaseEntityUpdatePointcut extends StaticMethodMatcherPointcut {
-  public boolean matches(Method method, Class targetClass) {
-    return isBaseEntitySubclass(targetClass) && isSetter(method);
-  }
-
-  private boolean isBaseEntitySubclass(Class targetClass) {
-    return BaseEntity.class.isAssignableFrom(targetClass);
-  }
-
-  private boolean isSetter(Method method) {
-    return method.getName().startsWith("set");
-  }
-}
-
-class BaseEntityUpdateAfterReturningAdvice implements AfterReturningAdvice {
-  public void afterReturning(Object returnValue, Method m, Object[] args, Object target)
-      throws Throwable {
-    System.out.println("Invocation returned");
   }
 }

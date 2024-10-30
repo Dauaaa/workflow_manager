@@ -1,7 +1,6 @@
 package com.workflowmanager.app.domains;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.BaseEntity;
 import com.workflowmanager.app.core.ErrorUtils;
 import jakarta.persistence.Entity;
@@ -50,10 +49,9 @@ public class WorkflowEntity extends BaseEntity {
 
   public WorkflowEntity() {}
 
-  public WorkflowEntity(
-      NewWorkflowEntityDTO newWorkflowEntity, AuthorizationDTO auth, Workflow workflow)
+  public WorkflowEntity(NewWorkflowEntityDTO newWorkflowEntity, Workflow workflow)
       throws ResponseStatusException {
-    super(newWorkflowEntity, auth);
+    super(newWorkflowEntity);
 
     ErrorUtils.assertNeq(
         workflow.getInitialState(), null, "Workflow[id:%s] doesn't have an initial state.");

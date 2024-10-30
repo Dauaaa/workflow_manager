@@ -1,6 +1,5 @@
 package com.workflowmanager.app.domains;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.WorkflowAttributeDescription.WorkflowAttributeReferenceType;
 import com.workflowmanager.app.domains.WorkflowAttributeDescription.WorkflowAttributeType;
@@ -23,19 +22,20 @@ public class WorkflowAttribute {
     return this.id.getDescription().getName();
   }
 
-  public Integer getDescriptionParentWorkflowId() {
+  public Integer getParentWorkflowId() {
     if (this.id.getDescription() == null) return null;
     return this.id.getDescription().getParentWorkflowId();
+  }
+
+  public Integer getBaseEntityId() {
+    return this.id.getBaseEntityId();
   }
 
   // values
   private Long integer;
   private Double floating;
   private String enumeration;
-
-  @JsonFormat(shape = JsonFormat.Shape.STRING)
   private BigDecimal decimal;
-
   private Currency currency;
   private Date date;
   private Instant timestamp;

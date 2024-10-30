@@ -1,7 +1,10 @@
 package com.workflowmanager.app.controllers;
 
-import com.workflowmanager.app.controllers.dtos.WorkflowAttributeResponseDTO;
-import com.workflowmanager.app.controllers.dtos.WorkflowAttributeWithDescriptionListDTO;
+import com.workflowmanager.app.controllers.requests.RequestNewAttribute;
+import com.workflowmanager.app.controllers.requests.RequestNewWorkflowEntity;
+import com.workflowmanager.app.controllers.responses.ResponseAttribute;
+import com.workflowmanager.app.controllers.responses.ResponseAttributeWithDescriptionList;
+import com.workflowmanager.app.controllers.responses.ResponseWorkflowEntity;
 import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.NewWorkflowAttributeDTO;
@@ -55,63 +58,69 @@ public class WorkflowEntityController {
   @Operation(description = "Create an entity for a workflow")
   @GetMapping("workflow-entities/{workflowEntityId}")
   @ResponseBody
-  public WorkflowEntity getWorkflow(@PathVariable("workflowEntityId") Integer workflowEntityId) {
-    return ErrorUtils.onEmpty404(
-        this.workflowEntityRepository.getByIdAndClientId(workflowEntityId, 1));
+  public ResponseWorkflowEntity getWorkflow(
+      @PathVariable("workflowEntityId") Integer workflowEntityId) {
+    return new ResponseWorkflowEntity(
+        ErrorUtils.onEmpty404(
+            this.workflowEntityRepository.getByIdAndClientId(workflowEntityId, 1)));
   }
 
   @Operation(description = "List all child entities of a workflow")
   @GetMapping("workflows/{workflowId}/workflow-entities")
   @ResponseBody
-  public Page<WorkflowEntity> listByWorkflowId(
+  public Page<ResponseWorkflowEntity> listByWorkflowId(
       @RequestParam(defaultValue = "1") int page,
       @RequestParam(defaultValue = "50") int pageSize,
       @PathVariable("workflowId") Integer workflowId) {
-    return this.workflowEntityRepository.listByWorkflowIdAndClientId(
-        workflowId, 1, PageRequest.of(page - 1, pageSize));
+    return this.workflowEntityRepository
+        .listByWorkflowIdAndClientId(workflowId, 1, PageRequest.of(page - 1, pageSize))
+        .map(entity -> new ResponseWorkflowEntity(entity));
   }
 
   @Operation(description = "List all entities in a given state")
   @GetMapping("workflow-states/{workflowStateId}/workflow-entities")
   @ResponseBody
-  public Page<WorkflowEntity> listByStateId(
+  public Page<ResponseWorkflowEntity> listByStateId(
       @RequestParam(defaultValue = "1") int page,
       @RequestParam(defaultValue = "50") int pageSize,
       @PathVariable("workflowStateId") Integer workflowStateId) {
-    return this.workflowEntityRepository.listByStateIdAndClientId(
-        workflowStateId, 1, PageRequest.of(page - 1, pageSize));
+    return this.workflowEntityRepository
+        .listByStateIdAndClientId(workflowStateId, 1, PageRequest.of(page - 1, pageSize))
+        .map(entity -> new ResponseWorkflowEntity(entity));
   }
 
   @PostMapping("workflows/{workflowId}/workflow-entities")
   @ResponseBody
-  public WorkflowEntity createEntity(
+  public ResponseWorkflowEntity createEntity(
       @PathVariable("workflowId") Integer workflowId,
-      @RequestBody NewWorkflowEntityDTO newWorkflowEntity) {
+      @RequestBody RequestNewWorkflowEntity request) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
 
     Workflow workflow =
         ErrorUtils.onEmpty404(this.workflowRepository.getByIdAndClientId(workflowId, 1));
 
-    WorkflowEntity workflowEntity = new WorkflowEntity(newWorkflowEntity, auth, workflow);
+    NewWorkflowEntityDTO dto = new NewWorkflowEntityDTO(request, auth);
+
+    WorkflowEntity workflowEntity = new WorkflowEntity(dto, workflow);
     this.workflowEntityRepository.save(workflowEntity);
 
-    return this.workflowEntityRepository
-        .getByIdAndClientId(workflowEntity.getId(), workflowEntity.getClientId())
-        .orElseThrow();
+    return new ResponseWorkflowEntity(workflowEntity);
   }
 
   @PutMapping("workflow-entities/{entityId}/attributes/{attributeName}")
   @ResponseBody
-  public WorkflowAttributeResponseDTO setAttribute(
+  public ResponseAttribute setAttribute(
       @PathVariable("entityId") Integer entityId,
       @PathVariable("attributeName") String attributeName,
-      @RequestBody NewWorkflowAttributeDTO attributeDTO) {
+      @RequestBody RequestNewAttribute request) {
+    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+
     WorkflowEntity entity =
         ErrorUtils.onEmpty404(
-            this.workflowEntityRepository.getByIdAndClientId(entityId, 1), entityId);
+            this.workflowEntityRepository.getByIdAndClientId(entityId, auth.clientId), entityId);
     Workflow workflow =
         ErrorUtils.onEmpty404(
-            this.workflowRepository.getByIdAndClientId(entity.getWorkflowId(), 1),
+            this.workflowRepository.getByIdAndClientId(entity.getWorkflowId(), auth.clientId),
             entity.getWorkflowId());
     WorkflowAttributeDescription attributeDescription =
         ErrorUtils.onEmpty404(
@@ -119,9 +128,11 @@ public class WorkflowEntityController {
                 attributeName, entityId, WorkflowAttributeReferenceType.WORKFLOW_ENTITY),
             attributeName);
 
+    NewWorkflowAttributeDTO dto = new NewWorkflowAttributeDTO(request);
+
     WorkflowAttribute attribute =
         new WorkflowAttribute(
-            attributeDTO,
+            dto,
             attributeDescription,
             workflow,
             entityId,
@@ -129,7 +140,7 @@ public class WorkflowEntityController {
 
     this.workflowAttributeRepository.save(attribute);
 
-    return new WorkflowAttributeResponseDTO(attribute, attributeDescription);
+    return new ResponseAttribute(attribute);
   }
 
   @Operation(description = "Try moving an entity to a new state")
@@ -137,12 +148,14 @@ public class WorkflowEntityController {
   @ResponseBody
   public void moveState(
       @PathVariable("entityId") Integer entityId, @PathVariable("newStateId") Integer newStateId) {
+    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+
     WorkflowEntity entity =
         ErrorUtils.onEmpty404(
-            this.workflowEntityRepository.getByIdAndClientId(entityId, 1), entityId);
+            this.workflowEntityRepository.getByIdAndClientId(entityId, auth.clientId), entityId);
     WorkflowState nextState =
         ErrorUtils.onEmpty404(
-            this.workflowStateRepository.getByIdAndClientId(newStateId, 1), newStateId);
+            this.workflowStateRepository.getByIdAndClientId(newStateId, auth.clientId), newStateId);
 
     // TODO: execute rule stuff...
     // REMEBER WE NEED TO BIND THE WORKFLOW VARIABLES TOO!
@@ -153,11 +166,13 @@ public class WorkflowEntityController {
 
   @GetMapping("workflow-entities/{entityId}/attributes")
   @ResponseBody
-  public WorkflowAttributeWithDescriptionListDTO listAttributes(
+  public ResponseAttributeWithDescriptionList listAttributes(
       @PathVariable("entityId") Integer entityId) {
+    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+
     WorkflowEntity entity =
         ErrorUtils.onEmpty404(
-            this.workflowEntityRepository.getByIdAndClientId(entityId, 1), entityId);
+            this.workflowEntityRepository.getByIdAndClientId(entityId, auth.clientId), entityId);
 
     // TODO: how to concurrent?
     List<WorkflowAttributeDescription> descriptions =
@@ -167,6 +182,6 @@ public class WorkflowEntityController {
         this.workflowAttributeRepository.list(
             entity.getId(), WorkflowAttributeReferenceType.WORKFLOW_ENTITY);
 
-    return new WorkflowAttributeWithDescriptionListDTO(attributes, descriptions);
+    return new ResponseAttributeWithDescriptionList(attributes, descriptions);
   }
 }

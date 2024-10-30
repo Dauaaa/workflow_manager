@@ -1,7 +1,6 @@
 package com.workflowmanager.app.domains;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.BaseEntity;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.state.ChangeStateRules;
@@ -11,6 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -51,11 +51,13 @@ public class WorkflowState extends BaseEntity {
     this.totalEntities = totalEntities;
   }
 
-  public WorkflowState(
-      NewWorkflowStateDTO newWorkflowState, AuthorizationDTO auth, Workflow workflow) {
-    super(newWorkflowState, auth);
+  public WorkflowState(NewWorkflowStateDTO newWorkflowState, Workflow workflow) {
+    super(newWorkflowState);
 
     this.workflow = workflow;
+    this.workflowId = workflow.getId();
+    this.fromRules = new ArrayList<>();
+    this.toRules = new ArrayList<>();
   }
 
   public Integer getWorkflowId() {
