@@ -35,11 +35,11 @@ public class WorkflowAttribute {
   }
 
   public Instant getCreationTime() {
-      return this.creationTime;
+    return this.creationTime;
   }
 
   public Instant getUpdateTime() {
-      return this.updateTime;
+    return this.updateTime;
   }
 
   // values

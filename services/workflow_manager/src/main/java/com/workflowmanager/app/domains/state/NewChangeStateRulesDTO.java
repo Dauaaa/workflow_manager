@@ -1,17 +1,14 @@
 package com.workflowmanager.app.domains.state;
 
 import com.workflowmanager.app.controllers.requests.RequestSetChangeStateRule;
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public class NewChangeStateRulesDTO {
-  @NotNull
-  public Integer fromId;
+  @NotNull public Integer fromId;
 
-  @NotNull
-  public Integer toId;
+  @NotNull public Integer toId;
 
   @Size(min = 1)
   @NotNull

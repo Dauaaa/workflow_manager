@@ -25,6 +25,7 @@ import com.workflowmanager.app.repositories.WorkflowAttributeRepository;
 import com.workflowmanager.app.repositories.WorkflowRepository;
 import com.workflowmanager.app.repositories.WorkflowStateRepository;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -59,6 +60,16 @@ public class WorkflowController {
     return new ResponseWorkflow(
         ErrorUtils.onEmpty404(
             this.workflowRepository.getByIdAndClientId(workflowId, auth.clientId), workflowId));
+  }
+
+  @GetMapping("workflows")
+  @ResponseBody
+  public List<ResponseWorkflow> list() {
+    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+
+    return this.workflowRepository.list(auth.clientId).stream()
+        .map(workflow -> new ResponseWorkflow(workflow))
+        .collect(Collectors.toList());
   }
 
   @PostMapping("workflows")

@@ -10,8 +10,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.web.server.ResponseStatusException;
 
 @Entity
@@ -25,9 +28,12 @@ public class WorkflowState extends BaseEntity {
   @Transient private Integer workflowId;
 
   @OneToMany(mappedBy = "from")
-  List<ChangeStateRules> changeRules;
+  private List<ChangeStateRules> changeRules;
 
   @Transient private Long totalEntities;
+
+  /** when was the last time the state's got/removed entities */
+  @NonNull private Instant lastCurrentEntitiesChange;
 
   public WorkflowState() {}
 
@@ -51,6 +57,7 @@ public class WorkflowState extends BaseEntity {
     this.workflow = workflow;
     this.workflowId = workflow.getId();
     this.changeRules = new ArrayList<>();
+    this.lastCurrentEntitiesChange = Instant.now();
   }
 
   public Integer getWorkflowId() {
@@ -65,7 +72,36 @@ public class WorkflowState extends BaseEntity {
     return this.totalEntities;
   }
 
+  public Instant getLastCurrentEntitiesChange() {
+    return this.lastCurrentEntitiesChange;
+  }
+
   public List<ChangeStateRules> getChangeRules() {
     return this.changeRules;
+  }
+
+  protected void signalLastCurrentEntitiesChange() {
+    this.lastCurrentEntitiesChange = Instant.now();
+  }
+
+  public static void moveEntity(WorkflowState from, WorkflowState to, WorkflowEntity entity)
+      throws ResponseStatusException {
+    ChangeStateRules rule =
+        from.changeRules.stream()
+            .filter(x -> x.getToId().equals(to.getId()))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        String.format(
+                            "rule from %s to %s does not exist", from.getId(), to.getId())));
+
+    // TODO: APPLY RULE
+    System.out.println(String.format("apply rule from %s to %s", rule.getFromId(), rule.getToId()));
+
+    from.signalLastCurrentEntitiesChange();
+    to.signalLastCurrentEntitiesChange();
+    entity.setCurrentState(to);
   }
 }

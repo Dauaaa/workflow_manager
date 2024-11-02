@@ -1,8 +1,8 @@
 load("//:build-tools/rules/ts/vite.bzl", "vite_ts_project")
 
 vite_ts_project(
-    name = "app",
-    srcs = ["main.tsx", "routes.tsx"],
+    name = "workflow-manage",
+    srcs = ["index.tsx"],
     declaration = True,
     resolve_json_module = True,
     transpiler = "tsc",
@@ -13,7 +13,5 @@ vite_ts_project(
         "//webapps/workflow_manager:node_modules/@types/react-dom",
         "//webapps/workflow_manager:node_modules/react",
         "//webapps/workflow_manager:node_modules/react-router-dom",
-        "//webapps/workflow_manager/src/pages/workflows",
-        "//webapps/workflow_manager/src/pages/workflow-manage",
     ]
 )

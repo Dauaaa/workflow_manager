@@ -1,8 +1,8 @@
 package com.workflowmanager.app.controllers;
 
 import com.workflowmanager.app.controllers.requests.RequestNewAttribute;
-import com.workflowmanager.app.controllers.requests.RequestSetChangeStateRule;
 import com.workflowmanager.app.controllers.requests.RequestNewWorkflowState;
+import com.workflowmanager.app.controllers.requests.RequestSetChangeStateRule;
 import com.workflowmanager.app.controllers.responses.ResponseAttribute;
 import com.workflowmanager.app.controllers.responses.ResponseAttributeWithDescriptionList;
 import com.workflowmanager.app.controllers.responses.ResponseWorkflowState;
@@ -96,7 +96,9 @@ public class WorkflowStateController {
 
   @PostMapping("workflow-states/{workflowStateId}/rules")
   @ResponseBody
-  public void createRule(@PathVariable("workflowStateId") Integer workflowStateId, @RequestBody RequestSetChangeStateRule request) {
+  public void createRule(
+      @PathVariable("workflowStateId") Integer workflowStateId,
+      @RequestBody RequestSetChangeStateRule request) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
 
     WorkflowState from =
@@ -106,7 +108,8 @@ public class WorkflowStateController {
             workflowStateId);
     WorkflowState to =
         ErrorUtils.onEmpty404(
-            this.workflowStateRepository.getByIdAndClientIdWithWorkflow(request.toId, auth.clientId),
+            this.workflowStateRepository.getByIdAndClientIdWithWorkflow(
+                request.toId, auth.clientId),
             request.toId);
 
     // just guarantee it exists

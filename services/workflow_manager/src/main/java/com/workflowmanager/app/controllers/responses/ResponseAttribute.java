@@ -1,10 +1,8 @@
 package com.workflowmanager.app.controllers.responses;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.WorkflowAttribute;
 import jakarta.validation.constraints.NotNull;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
 

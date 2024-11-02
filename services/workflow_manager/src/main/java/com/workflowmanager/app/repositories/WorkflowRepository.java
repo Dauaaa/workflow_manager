@@ -1,6 +1,7 @@
 package com.workflowmanager.app.repositories;
 
 import com.workflowmanager.app.domains.Workflow;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.jpa.repository.Query;
@@ -14,9 +15,9 @@ public interface WorkflowRepository extends Repository<Workflow, Integer> {
   void save(Workflow workflow);
 
   /** Upsert workflow */
-  @Query("SELECT w FROM Workflow w LEFT JOIN w.initialState WHERE w.clientId = :clientId")
+  @Query("SELECT w FROM Workflow w WHERE w.clientId = :clientId")
   @Transactional(readOnly = true)
-  void list(@Param("clientId") Integer clientId);
+  List<Workflow> list(@Param("clientId") Integer clientId);
 
   /** Get workflow by id and client_id */
   @Query(

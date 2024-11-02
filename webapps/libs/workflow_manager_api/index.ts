@@ -75,7 +75,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["list_1"];
         put?: never;
         post: operations["createWorkflow"];
         delete?: never;
@@ -107,9 +107,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description List all child entities of a workflow */
-        get: operations["listByWorkflowId"];
+        get?: never;
         put?: never;
+        /** @description Create an entity for a workflow */
         post: operations["createEntity"];
         delete?: never;
         options?: never;
@@ -149,6 +149,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workflow-entities/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflow-entities/{entityId}/workflow-states/{newStateId}": {
         parameters: {
             query?: never;
@@ -182,6 +198,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workflows/{workflowId}/workflow-entities/ids": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List all child entities of a workflow */
+        get: operations["listByWorkflowId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflow-states/{workflowStateId}": {
         parameters: {
             query?: never;
@@ -198,15 +231,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workflow-states/{workflowStateId}/workflow-entities": {
+    "/workflow-states/{workflowStateId}/workflow-entities/ids": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description List all entities in a given state */
-        get: operations["listByStateId"];
+        get: operations["listEntityIdsByStateId"];
         put?: never;
         post?: never;
         delete?: never;
@@ -238,7 +270,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Create an entity for a workflow */
         get: operations["getWorkflow_1"];
         put?: never;
         post?: never;
@@ -417,6 +448,11 @@ export interface components {
             refType: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
             /** @enum {string} */
             attrType: "INTEGER" | "FLOATING" | "ENUMERATION" | "DECIMAL" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
+            name: string;
+            /** Format: date-time */
+            creationTime: string;
+            /** Format: date-time */
+            updateTime: string;
             expression?: components["schemas"]["WorkflowAttributeExprRule"];
             regex?: components["schemas"]["WorkflowAttributeRegexRule"];
             /** Format: int32 */
@@ -432,41 +468,8 @@ export interface components {
             /** @description The expressions that need to return true so the change may happen */
             expressions: string[];
         };
-        PageResponseWorkflowEntity: {
-            /** Format: int64 */
-            totalElements?: number;
-            /** Format: int32 */
-            totalPages?: number;
-            pageable?: components["schemas"]["PageableObject"];
-            /** Format: int32 */
-            size?: number;
-            content?: components["schemas"]["ResponseWorkflowEntity"][];
-            /** Format: int32 */
-            number?: number;
-            sort?: components["schemas"]["SortObject"][];
-            first?: boolean;
-            last?: boolean;
-            /** Format: int32 */
-            numberOfElements?: number;
-            empty?: boolean;
-        };
-        PageableObject: {
-            paged?: boolean;
-            /** Format: int32 */
-            pageNumber?: number;
-            /** Format: int32 */
-            pageSize?: number;
-            /** Format: int64 */
-            offset?: number;
-            sort?: components["schemas"]["SortObject"][];
-            unpaged?: boolean;
-        };
-        SortObject: {
-            direction?: string;
-            nullHandling?: string;
-            ascending?: boolean;
-            property?: string;
-            ignoreCase?: boolean;
+        RequestListWorkflowEntity: {
+            ids: number[];
         };
         ResponseAttributeWithDescription: {
             attr?: components["schemas"]["ResponseAttribute"];
@@ -474,6 +477,11 @@ export interface components {
         };
         ResponseAttributeWithDescriptionList: {
             items: components["schemas"]["ResponseAttributeWithDescription"][];
+        };
+        ResponseEntityIdsByState: {
+            ids: number[];
+            /** Format: date-time */
+            lastCurrentEntitiesChange: string;
         };
     };
     responses: never;
@@ -591,6 +599,26 @@ export interface operations {
             };
         };
     };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseWorkflow"][];
+                };
+            };
+        };
+    };
     createWorkflow: {
         parameters: {
             query?: never;
@@ -659,31 +687,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseWorkflowState"];
-                };
-            };
-        };
-    };
-    listByWorkflowId: {
-        parameters: {
-            query?: {
-                page?: number;
-                pageSize?: number;
-            };
-            header?: never;
-            path: {
-                workflowId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PageResponseWorkflowEntity"];
                 };
             };
         };
@@ -786,6 +789,30 @@ export interface operations {
             };
         };
     };
+    list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestListWorkflowEntity"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseWorkflowEntity"][];
+                };
+            };
+        };
+    };
     moveState: {
         parameters: {
             query?: never;
@@ -829,6 +856,28 @@ export interface operations {
             };
         };
     };
+    listByWorkflowId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": number[];
+                };
+            };
+        };
+    };
     getState: {
         parameters: {
             query?: never;
@@ -851,12 +900,9 @@ export interface operations {
             };
         };
     };
-    listByStateId: {
+    listEntityIdsByStateId: {
         parameters: {
-            query?: {
-                page?: number;
-                pageSize?: number;
-            };
+            query?: never;
             header?: never;
             path: {
                 workflowStateId: number;
@@ -871,7 +917,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PageResponseWorkflowEntity"];
+                    "*/*": components["schemas"]["ResponseEntityIdsByState"];
                 };
             };
         };

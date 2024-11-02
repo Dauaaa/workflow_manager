@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import org.springframework.web.server.ResponseStatusException;
 
 @Entity
@@ -32,11 +33,17 @@ public class WorkflowEntity extends BaseEntity {
 
   private Integer workflowId;
 
+  private Integer currentStateId;
+
+  private Instant timeMovedToCurrentState;
+
   public Integer getWorkflowId() {
     return this.workflowId;
   }
 
-  private Integer currentStateId;
+  public Instant getTimeMovedToCurrentState() {
+    return this.timeMovedToCurrentState;
+  }
 
   public Integer getCurrentStateId() {
     return this.currentStateId;
@@ -45,6 +52,7 @@ public class WorkflowEntity extends BaseEntity {
   public void setCurrentState(WorkflowState currentState) {
     this.currentState = currentState;
     this.currentStateId = currentState.getId();
+    this.timeMovedToCurrentState = Instant.now();
   }
 
   public WorkflowEntity() {}
@@ -57,7 +65,7 @@ public class WorkflowEntity extends BaseEntity {
         workflow.getInitialState(), null, "Workflow[id:%s] doesn't have an initial state.");
 
     this.workflow = workflow;
-    this.currentState = workflow.getInitialState();
+    this.setCurrentState(workflow.getInitialState());
   }
 
   @PrePersist

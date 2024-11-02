@@ -1,9 +1,9 @@
 package com.workflowmanager.app.repositories;
 
 import com.workflowmanager.app.domains.WorkflowEntity;
+import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import java.util.Optional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
@@ -19,21 +19,21 @@ public interface WorkflowEntityRepository extends Repository<WorkflowEntity, Int
   Optional<WorkflowEntity> getByIdAndClientId(
       @Param("id") Integer id, @Param("clientId") Integer clientId);
 
-  /** Get workflow state by id */
   @Query(
-      "SELECT we FROM WorkflowEntity we WHERE we.workflow.id = :workflowId AND we.clientId ="
-          + " :clientId")
+      "SELECT we.id FROM WorkflowEntity we WHERE we.workflow.id = :workflowId AND we.clientId ="
+          + " :clientId ORDER BY we.creationTime")
   @Transactional(readOnly = true)
-  Page<WorkflowEntity> listByWorkflowIdAndClientId(
-      @Param("workflowId") Integer workflowId,
-      @Param("clientId") Integer clientId,
-      Pageable pageable);
+  List<@NotNull Integer> listIdsByWorkflowIdAndClientId(
+      @Param("workflowId") Integer workflowId, @Param("clientId") Integer clientId);
 
-  /** Get workflow state by id */
   @Query(
-      "SELECT we FROM WorkflowEntity we WHERE we.currentState.id = :stateId AND we.clientId ="
-          + " :clientId")
+      "SELECT we.id FROM WorkflowEntity we WHERE we.currentState.id = :stateId AND we.clientId ="
+          + " :clientId ORDER BY we.timeMovedToCurrentState DESC")
   @Transactional(readOnly = true)
-  Page<WorkflowEntity> listByStateIdAndClientId(
-      @Param("stateId") Integer stateId, @Param("clientId") Integer clientId, Pageable pageable);
+  List<@NotNull Integer> listIdsByStateIdAndClientId(
+      @Param("stateId") Integer stateId, @Param("clientId") Integer clientId);
+
+  @Query("SELECT we FROM WorkflowEntity we WHERE we.clientId = :clientId AND we.id IN :ids")
+  List<WorkflowEntity> listByIds(
+      @Param("ids") List<Integer> ids, @Param("clientId") Integer clientId);
 }

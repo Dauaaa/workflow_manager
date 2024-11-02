@@ -11,12 +11,14 @@ import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
 import java.util.List;
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.Type;
@@ -48,6 +50,9 @@ public class WorkflowAttributeDescription {
   @Immutable private WorkflowAttributeReferenceType refType;
   private WorkflowAttributeType attrType;
 
+  private Instant creationTime;
+  private Instant updateTime;
+
   @Type(JsonType.class)
   private WorkflowAttributeExprRule expression;
 
@@ -72,6 +77,14 @@ public class WorkflowAttributeDescription {
     this.expression = dto.expression;
     this.regex = dto.regex;
     this.enumDescription = dto.enumDescription;
+  }
+
+  public Instant getCreationTime() {
+    return this.updateTime;
+  }
+
+  public Instant getUpdateTime() {
+    return this.updateTime;
   }
 
   public Integer getParentWorkflowId() {
@@ -125,6 +138,13 @@ public class WorkflowAttributeDescription {
   @PrePersist
   protected void persistParentWorkflowId() {
     this.parentWorkflowId = this.parentWorkflow.getId();
+    this.updateTime = Instant.now();
+    this.creationTime = Instant.now();
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
+    this.updateTime = Instant.now();
   }
 
   public enum WorkflowAttributeType {

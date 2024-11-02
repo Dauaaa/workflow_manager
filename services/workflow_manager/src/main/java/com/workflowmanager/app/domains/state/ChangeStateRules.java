@@ -71,11 +71,11 @@ public class ChangeStateRules {
   }
 
   public Instant getCreationTime() {
-      return this.creationTime;
+    return this.creationTime;
   }
 
   public Instant getUpdateTime() {
-      return this.updateTime;
+    return this.updateTime;
   }
 
   public WorkflowState getFrom() {

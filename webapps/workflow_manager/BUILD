@@ -26,6 +26,8 @@ vite(
     vite_binary = ":vite_binary",
     srcs = [
         "//webapps/workflow_manager/src:app",
+        "//webapps/workflow_manager/src/pages/workflows",
+        "//webapps/workflow_manager/src/pages/workflow-manage",
         "index.html",
         ":node_modules",
         ":project_settings",

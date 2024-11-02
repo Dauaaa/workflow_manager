@@ -2,7 +2,7 @@ load("//:build-tools/rules/ts/vite.bzl", "vite_ts_project")
 
 vite_ts_project(
     name = "workflow-store",
-    srcs = ["workflow-store.ts"],
+    srcs = ["workflow-store.ts", "context.tsx"],
     declaration = True,
     resolve_json_module = True,
     transpiler = "tsc",
