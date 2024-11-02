@@ -1,9 +1,9 @@
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
-load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//:build-tools/rules/ts/vite.bzl", "vite_ts_project")
 load("@npm//:openapi-typescript/package_json.bzl", open_api_ts_bin = "bin")
 load("//:build-tools/rules/general/sync_source.bzl", "sync_source")
 
-ts_project(
+vite_ts_project(
     name = "workflow_manager_open_api_ts",
     srcs = [
         ":workflow_manager_api_types",
@@ -20,7 +20,6 @@ ts_project(
     deps = [
         "//:node_modules/openapi-typescript",
         "//:node_modules/typescript",
-
     ],
 )
 

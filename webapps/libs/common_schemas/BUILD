@@ -1,11 +1,11 @@
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
-load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//:build-tools/rules/ts/vite.bzl", "vite_ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("//:build-tools/rules/general/sync_source.bzl", "sync_source")
 
 npm_link_all_packages(name = "node_modules")
 
-ts_project(
+vite_ts_project(
     name = "common_schemas",
     srcs = [
         "index.ts",

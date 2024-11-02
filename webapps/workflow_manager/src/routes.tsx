@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 
 const WorkflowsPage = lazy(() => import("./pages/workflows"));
 const WorkflowManagePage = lazy(() => import("./pages/workflow-manage"));
@@ -18,11 +18,19 @@ export const workflowManagerRouter: ReturnType<typeof createBrowserRouter> =
           children: [
             {
               index: true,
-              element: <WorkflowsPage />,
+              element: (
+                <Suspense>
+                  <WorkflowsPage />
+                </Suspense>
+              ),
             },
             {
               path: ":workflowId",
-              element: <WorkflowManagePage />,
+              element: (
+                <Suspense>
+                  <WorkflowManagePage />
+                </Suspense>
+              ),
             },
           ],
         },

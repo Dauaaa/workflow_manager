@@ -28,10 +28,12 @@ vite(
         "//webapps/workflow_manager/src:app",
         "//webapps/workflow_manager/src/pages/workflows",
         "//webapps/workflow_manager/src/pages/workflow-manage",
+        "//webapps/workflow_manager/src/store:workflow-store",
         "index.html",
         ":node_modules",
         ":project_settings",
         ":tsconfig",
+        ":tailwind",
     ],
 )
 
@@ -44,11 +46,14 @@ ts_config(
 js_library(
     name = "project_settings",
     srcs = [
+        ".env.dev",
         "main.css",
         "package.json",
         "postcss.config.mjs",
         "tailwind.config.ts",
         "vite.config.mjs",
+        "vite-env.d.ts",
+        "dayjs.d.ts",
     ],
 )
 

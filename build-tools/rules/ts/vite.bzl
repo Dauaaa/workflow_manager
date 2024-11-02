@@ -24,6 +24,7 @@ def vite(srcs, vite_binary, build_out = "dist", **kwargs):
 
     js_run_devserver(
         name = dev_name,
+        args = ["-m", "dev"],
         tool = vite_binary,
         data = srcs,
         chdir = native.package_name(),

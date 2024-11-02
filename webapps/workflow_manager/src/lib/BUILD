@@ -1,8 +1,8 @@
 load("//:build-tools/rules/ts/vite.bzl", "vite_ts_project")
 
 vite_ts_project(
-    name = "workflows",
-    srcs = ["index.tsx"],
+    name = "utils",
+    srcs = ["utils.ts"],
     declaration = True,
     resolve_json_module = True,
     transpiler = "tsc",
@@ -11,12 +11,8 @@ vite_ts_project(
     deps = [
         "//webapps/workflow_manager:node_modules/@types/react",
         "//webapps/workflow_manager:node_modules/@types/react-dom",
-        "//webapps/workflow_manager:node_modules/react-router-dom",
         "//webapps/workflow_manager:node_modules/react",
-        "//webapps/workflow_manager:node_modules/@radix-ui/react-icons",
-        "//webapps/workflow_manager/src/components/ui",
-        "//webapps/workflow_manager/src/features:new-workflow-form",
-        "//webapps/workflow_manager/src/store:workflow-store",
-
+        "//webapps/workflow_manager:node_modules/clsx",
+        "//webapps/workflow_manager:node_modules/tailwind-merge",
     ]
 )

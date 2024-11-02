@@ -13,7 +13,10 @@ vite_ts_project(
         "//webapps/workflow_manager:node_modules/@types/react-dom",
         "//webapps/workflow_manager:node_modules/react",
         "//webapps/workflow_manager:node_modules/react-router-dom",
+        "//webapps/workflow_manager:node_modules/dayjs",
         "//webapps/workflow_manager/src/pages/workflows",
         "//webapps/workflow_manager/src/pages/workflow-manage",
+        "//webapps/workflow_manager/src/store:workflow-store",
+        "//webapps/workflow_manager/src/components:theme-provider",
     ]
 )

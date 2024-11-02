@@ -12,11 +12,7 @@ import {
 // need these empty imports for typing to work
 import "dayjs";
 import "decimal.js";
-import {
-  makeObservable,
-  observable,
-  action,
-} from "mobx";
+import { makeObservable, observable, action } from "mobx";
 
 /**
  * All in one store. It guarantees the application state is in sync with the servers.
@@ -25,6 +21,13 @@ import {
  * of types that are only relevant internally to the store. Breaking it into smaller
  * files for chunking doesn’t offer much benefit, as nearly all store code is needed
  * all the time for this app.
+ *
+ * This store will always result in an API call, the application should be careful
+ * to only use the load functions once (on component render). The store will take care
+ * of syncing according to websocket updates. Intended use of the store:
+ *
+ * // in the top of the page, declare your "dependencies"
+ * useEffect(() => { void store.loadWorkflows(); return () => store.unsub("workflows") }, [])
  */
 export class WorkflowStore {
   public constructor(workflowManagerService?: WorkflowManagerService) {
@@ -33,18 +36,10 @@ export class WorkflowStore {
 
     makeObservable<
       WorkflowStore,
-      | "workflows"
-      | "workflowStates"
-      | "workflowEntities"
-      | "workflowAttributes"
-      | "stateAttributes"
-      | "entityAttributes"
-      | "workflowsIdByEntityIds"
-      | "stateIdByEntityIds"
-      | "workflowEntityIdsByState"
-      | "upsertState"
       | "upsertWorkflow"
+      | "upsertState"
       | "upsertEntity"
+      | "upsertWorkflows"
       | "upsertEntities"
     >(this, {
       workflows: observable,
@@ -59,51 +54,60 @@ export class WorkflowStore {
       upsertWorkflow: action,
       upsertState: action,
       upsertEntity: action,
+      upsertWorkflows: action,
       upsertEntities: action,
     });
   }
 
-  private workflowManagerService: WorkflowManagerService;
-  private workflows: Map<number, Workflow> = new Map();
-  private workflowStates: Map<number, WorkflowState> = new Map();
-  private workflowEntities: Map<number, WorkflowEntity> = new Map();
-  private workflowAttributes: Map<number, Map<string, WorkflowAttribute>> =
+  public workflowManagerService: WorkflowManagerService;
+  public workflows: Map<number, Workflow> = new Map();
+  public workflowStates: Map<number, WorkflowState> = new Map();
+  public workflowEntities: Map<number, WorkflowEntity> = new Map();
+  public workflowAttributes: Map<number, Map<string, WorkflowAttribute>> =
     new Map();
-  private stateAttributes: Map<number, Map<string, WorkflowAttribute>> =
+  public stateAttributes: Map<number, Map<string, WorkflowAttribute>> =
     new Map();
-  private entityAttributes: Map<number, Map<string, WorkflowAttribute>> =
+  public entityAttributes: Map<number, Map<string, WorkflowAttribute>> =
     new Map();
 
   /** map from entityId -> workflowId */
-  private workflowsIdByEntityIds: Map<number, number> = new Map();
+  public workflowsIdByEntityIds: Map<number, number> = new Map();
   /** map from entityId -> currentStateId */
-  private stateIdByEntityIds: Map<number, number> = new Map();
+  public stateIdByEntityIds: Map<number, number> = new Map();
   /** map from stateId -> id of all entities with currentStateId = stateId */
-  private workflowEntityIdsByState: Map<number, EntityIdsByState> = new Map();
+  public workflowEntityIdsByState: Map<number, EntityIdsByState> = new Map();
+
+  public createWorkflow = async (
+    ...args: Parameters<WorkflowManagerService["createWorkflow"]>
+  ) => {
+    const workflow = await this.workflowManagerService.createWorkflow(...args);
+
+    this.upsertWorkflow({ workflow, attrs: [] });
+  };
 
   public loadWorkflow = async (workflowId: number) => {
-    if (!this.checkIfWorkflowIsFullyLoaded(workflowId)) {
-      const res = await this.workflowManagerService.getWorkflow(workflowId);
+    const res = await this.workflowManagerService.getWorkflow(workflowId);
 
-      this.upsertWorkflow(res);
-    }
+    this.upsertWorkflow(res);
+  };
+
+  public loadWorkflows = async () => {
+    const workflows = await this.workflowManagerService.listWorkflows();
+
+    this.upsertWorkflows(workflows);
   };
 
   public loadState = async (workflowStateId: number) => {
-    if (!this.checkIfStateIsFullyLoaded(workflowStateId)) {
-      const res =
-        await this.workflowManagerService.getWorkflowState(workflowStateId);
+    const res =
+      await this.workflowManagerService.getWorkflowState(workflowStateId);
 
-      this.upsertState(res);
-    }
+    this.upsertState(res);
   };
 
   public loadEntity = async (entityId: number) => {
-    if (!this.checkIfEntityIsLoaded(entityId)) {
-      const res = await this.workflowManagerService.getWorkflowEntity(entityId);
+    const res = await this.workflowManagerService.getWorkflowEntity(entityId);
 
-      this.upsertEntity(res);
-    }
+    this.upsertEntity(res);
   };
 
   public getNextWorkflowsByState = async (stateId: number) => {
@@ -124,28 +128,6 @@ export class WorkflowStore {
     this.upsertEntities(entities);
   };
 
-  private checkIfWorkflowIsFullyLoaded = (workflowId: number): boolean => {
-    return !(
-      !this.workflows.get(workflowId) ||
-      !this.workflowAttributes.get(workflowId)
-    );
-  };
-
-  private checkIfStateIsFullyLoaded = (workflowStateId: number): boolean => {
-    return !(
-      !this.workflowStates.get(workflowStateId) ||
-      !this.stateAttributes.get(workflowStateId) ||
-      !this.workflowEntityIdsByState.get(workflowStateId)
-    );
-  };
-
-  private checkIfEntityIsLoaded = (entityId: number): boolean => {
-    return !(
-      !this.workflowEntities.get(entityId) ||
-      !this.entityAttributes.get(entityId)
-    );
-  };
-
   private upsertWorkflow = ({
     workflow,
     attrs,
@@ -154,7 +136,7 @@ export class WorkflowStore {
     attrs: WorkflowAttribute[];
   }) => {
     let curWorkflow = this.workflows.get(workflow.id);
-    if (!curWorkflow || curWorkflow.updateTime < workflow.updateTime)
+    if (!curWorkflow || curWorkflow.updateTime.isBefore(workflow.updateTime))
       this.workflows.set(workflow.id, workflow);
 
     let curWorkflowAttrs = this.workflowAttributes.get(workflow.id);
@@ -166,7 +148,7 @@ export class WorkflowStore {
     } else {
       for (const attr of attrs) {
         let curAttr = curWorkflowAttrs.get(attr.name);
-        if (!curAttr || curAttr.updateTime < attr.updateTime)
+        if (!curAttr || curAttr.updateTime.isBefore(attr.updateTime))
           curWorkflowAttrs.set(attr.name, attr);
       }
     }
@@ -182,14 +164,15 @@ export class WorkflowStore {
     entityIds: EntityIdsByState;
   }) => {
     let curState = this.workflowStates.get(state.id);
-    if (!curState || curState.updateTime < state.updateTime)
+    if (!curState || curState.updateTime.isBefore(state.updateTime))
       this.workflowStates.set(state.id, state);
 
     let curEntityIds = this.workflowEntityIdsByState.get(state.id);
     if (
       !curEntityIds ||
-      curEntityIds.lastCurrentEntitiesChange <
-        entityIds.lastCurrentEntitiesChange
+      curEntityIds.lastCurrentEntitiesChange.isBefore(
+        entityIds.lastCurrentEntitiesChange,
+      )
     )
       this.workflowEntityIdsByState.set(state.id, entityIds);
 
@@ -202,7 +185,7 @@ export class WorkflowStore {
     } else {
       for (const attr of attrs) {
         let curAttr = curStateAttrs.get(attr.name);
-        if (!curAttr || curAttr.updateTime < attr.updateTime)
+        if (!curAttr || curAttr.updateTime.isBefore(attr.updateTime))
           curStateAttrs.set(attr.name, attr);
       }
     }
@@ -216,7 +199,7 @@ export class WorkflowStore {
     attrs: WorkflowAttribute[];
   }) => {
     let curEntity = this.workflowEntities.get(entity.id);
-    if (!curEntity || curEntity.updateTime < entity.updateTime) {
+    if (!curEntity || curEntity.updateTime.isBefore(entity.updateTime)) {
       this.workflowEntities.set(entity.id, entity);
       this.workflowsIdByEntityIds.set(entity.id, entity.workflowId);
       this.stateIdByEntityIds.set(entity.id, entity.currentStateId);
@@ -231,16 +214,24 @@ export class WorkflowStore {
     } else {
       for (const attr of attrs) {
         let curAttr = curStateAttrs.get(attr.name);
-        if (!curAttr || curAttr.updateTime < attr.updateTime)
+        if (!curAttr || curAttr.updateTime.isBefore(attr.updateTime))
           curStateAttrs.set(attr.name, attr);
       }
+    }
+  };
+
+  private upsertWorkflows = (workflows: Workflow[]) => {
+    for (const workflow of workflows) {
+      let curWorkflow = this.workflows.get(workflow.id);
+      if (!curWorkflow || curWorkflow.updateTime.isBefore(workflow.updateTime))
+        this.workflows.set(workflow.id, workflow);
     }
   };
 
   private upsertEntities = (entities: WorkflowEntity[]) => {
     for (const entity of entities) {
       let curEntity = this.workflowEntities.get(entity.id);
-      if (!curEntity || curEntity.updateTime < entity.updateTime) {
+      if (!curEntity || curEntity.updateTime.isBefore(entity.updateTime)) {
         this.workflowEntities.set(entity.id, entity);
         this.workflowsIdByEntityIds.set(entity.id, entity.workflowId);
         this.stateIdByEntityIds.set(entity.id, entity.currentStateId);
@@ -253,6 +244,19 @@ export class WorkflowStore {
 // TODO: create error type and return accordingly (need to map some spring boot stuff
 // so I'm skipping for now...)
 class WorkflowManagerService {
+  public createWorkflow = async (newWorkflow: RequestNewWorkflow) => {
+    // not necessary but good practice since we might need to eventually transform
+    // from domain to api format. So this function would always get the domain format
+    const parsedNewWorkflow =
+      parsers.RequestNewWorkflowSchema.parse(newWorkflow);
+
+    const response = await this.client.POST("/workflows", {
+      body: parsedNewWorkflow,
+    });
+
+    return parsers.WorkflowSchema.parse(response?.data);
+  };
+
   public getWorkflow = async (workflowId: number) => {
     const [workflow, attrs] = await Promise.all([
       this.getWorkflowInner(workflowId),
@@ -364,6 +368,8 @@ class WorkflowManagerService {
   };
 
   public constructor(client?: ReturnType<typeof createClient<paths>>) {
+    console.log({ url: import.meta.env.VITE_WORKFLOW_MANAGER_BASE_URL });
+
     this.client =
       client ??
       createClient<paths>({
@@ -482,6 +488,9 @@ export type WorkflowAttribute = z.infer<
 export type EntityIdsByState = z.infer<
   typeof parsers.ResponseEntityIdsByStateSchema
 >;
+export type RequestNewWorkflow = z.input<
+  typeof parsers.RequestNewWorkflowSchema
+>;
 
 export const WORKFLOW_ATTRIBUTE_REFERENCE_TYPES = [
   "WORKFLOW",
@@ -555,6 +564,8 @@ module parsers {
     text: z.string().nullish().transform(standardUndefined),
   });
 
+  // TODO: this won't sync correctly, will have to split
+  // attributes from descriptions (both here and service)
   export const WorkflowAttributeWithDescriptionSchema = z
     .object({
       attr: WorkflowAttributeSchema.nullish().transform(standardUndefined),
