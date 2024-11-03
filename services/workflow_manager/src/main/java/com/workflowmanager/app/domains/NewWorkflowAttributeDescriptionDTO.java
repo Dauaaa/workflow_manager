@@ -16,9 +16,10 @@ public class NewWorkflowAttributeDescriptionDTO {
   public WorkflowAttributeRegexRule regex;
   public List<String> enumDescription;
 
-  public NewWorkflowAttributeDescriptionDTO(RequestNewAttributeDescription request) {
+  public NewWorkflowAttributeDescriptionDTO(
+      RequestNewAttributeDescription request, Workflow parentWorkflow) {
     this.name = request.name;
-    this.parentWorkflowId = request.parentWorkflowId;
+    this.parentWorkflowId = parentWorkflow.getId();
     this.refType = request.refType;
     this.attrType = request.attrType;
     this.expression = request.expression;

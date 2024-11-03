@@ -14,9 +14,15 @@ vite_ts_project(
         "//webapps/workflow_manager:node_modules/react",
         "//webapps/workflow_manager:node_modules/@radix-ui/react-label",
         "//webapps/workflow_manager:node_modules/@radix-ui/react-slot",
+        "//webapps/workflow_manager:node_modules/@radix-ui/react-icons",
+        "//webapps/workflow_manager:node_modules/@radix-ui/react-dialog",
+        "//webapps/workflow_manager:node_modules/@radix-ui/react-switch",
         "//webapps/workflow_manager:node_modules/class-variance-authority",
         "//webapps/workflow_manager:node_modules/react-hook-form",
+        "//webapps/workflow_manager:node_modules/vaul",
         "//webapps/workflow_manager:node_modules/@radix-ui/react-popover",
+        "//webapps/workflow_manager:node_modules/@radix-ui/react-collapsible",
+        "//webapps/workflow_manager:node_modules/@radix-ui/react-select",
         "//webapps/workflow_manager/src/lib:utils",
     ]
 )

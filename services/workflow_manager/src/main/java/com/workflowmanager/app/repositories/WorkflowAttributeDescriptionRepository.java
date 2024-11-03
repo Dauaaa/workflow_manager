@@ -33,4 +33,10 @@ public interface WorkflowAttributeDescriptionRepository
   List<WorkflowAttributeDescription> list(
       @Param("parentWorkflowId") Integer parentWorkflowId,
       @Param("refType") WorkflowAttributeReferenceType refType);
+
+  @Query(
+      "SELECT wad FROM WorkflowAttributeDescription wad WHERE wad.parentWorkflow.id ="
+          + " :parentWorkflowId")
+  List<WorkflowAttributeDescription> listByWorkflowId(
+      @Param("parentWorkflowId") Integer parentWorkflowId);
 }

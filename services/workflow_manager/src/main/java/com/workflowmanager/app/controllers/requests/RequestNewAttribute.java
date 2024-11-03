@@ -1,17 +1,14 @@
 package com.workflowmanager.app.controllers.requests;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
 
 public class RequestNewAttribute {
-  public Long integer;
+  public String integer;
   public Double floating;
   public String enumeration;
 
-  @JsonFormat(shape = JsonFormat.Shape.STRING)
-  public BigDecimal decimal;
+  public String decimal;
 
   public Date date;
   public Instant timestamp;

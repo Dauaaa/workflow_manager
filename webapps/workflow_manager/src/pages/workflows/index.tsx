@@ -16,11 +16,16 @@ import { Link } from "react-router-dom";
 const WorkflowsPage = () => {
   const workflowStore = useWorkflowStore();
 
-  useEffect(() => void workflowStore.loadWorkflows());
+  useEffect(() => void workflowStore.loadWorkflows(), [workflowStore]);
 
   return (
-    <div className="min-h-[100vh]">
-      <WorkflowList />
+    <div className="min-h-[100vh] pt-64">
+      <div className="mx-auto w-3/5">
+        <h1 className="text-accent-foreground font-bold font-serif text-xl mb-4 ml-2">
+          Workflows
+        </h1>
+        <WorkflowList />
+      </div>
     </div>
   );
 };

@@ -4,7 +4,6 @@ import com.workflowmanager.app.controllers.requests.RequestNewAttribute;
 import com.workflowmanager.app.controllers.requests.RequestNewWorkflowState;
 import com.workflowmanager.app.controllers.requests.RequestSetChangeStateRule;
 import com.workflowmanager.app.controllers.responses.ResponseAttribute;
-import com.workflowmanager.app.controllers.responses.ResponseAttributeWithDescriptionList;
 import com.workflowmanager.app.controllers.responses.ResponseWorkflowState;
 import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.ErrorUtils;
@@ -25,13 +24,13 @@ import com.workflowmanager.app.repositories.WorkflowStateRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
 @CrossOrigin
 @Controller
@@ -93,7 +92,7 @@ public class WorkflowStateController {
     WorkflowState workflowState = new WorkflowState(dto, workflow);
     this.workflowStateRepository.save(workflowState);
 
-    return new ResponseWorkflowState(workflowState);
+    return this.getState(workflowState.getId());
   }
 
   @PostMapping("workflow-states/{workflowStateId}/rules")
@@ -144,7 +143,7 @@ public class WorkflowStateController {
     WorkflowAttributeDescription attributeDescription =
         ErrorUtils.onEmpty404(
             this.attributeDescriptionRepository.getByNameParentWorkflowIdAndRefType(
-                attributeName, stateId, WorkflowAttributeReferenceType.WORKFLOW_STATE),
+                attributeName, workflow.getId(), WorkflowAttributeReferenceType.WORKFLOW_STATE),
             attributeName);
 
     NewWorkflowAttributeDTO dto = new NewWorkflowAttributeDTO(request);
@@ -159,27 +158,28 @@ public class WorkflowStateController {
 
     this.workflowAttributeRepository.save(attribute);
 
-    return new ResponseAttribute(attribute);
+    return new ResponseAttribute(
+        this.workflowAttributeRepository
+            .getByBaseEntityAndDescriptionName(
+                state.getId(),
+                attributeDescription.getName(),
+                WorkflowAttributeReferenceType.WORKFLOW_STATE)
+            .orElseThrow());
   }
 
   @GetMapping("workflow-states/{stateId}/attributes")
   @ResponseBody
-  public ResponseAttributeWithDescriptionList listAttributes(
-      @PathVariable("stateId") Integer stateId) {
+  public List<ResponseAttribute> listAttributes(@PathVariable("stateId") Integer stateId) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
 
-    WorkflowState state =
-        ErrorUtils.onEmpty404(
-            this.workflowStateRepository.getByIdAndClientId(stateId, auth.clientId), stateId);
+    // authorize
+    ErrorUtils.onEmpty404(
+        this.workflowStateRepository.getByIdAndClientId(stateId, auth.clientId), stateId);
 
-    // TODO: how to concurrent?
-    List<WorkflowAttributeDescription> descriptions =
-        this.attributeDescriptionRepository.list(
-            state.getWorkflowId(), WorkflowAttributeReferenceType.WORKFLOW_STATE);
-    List<WorkflowAttribute> attributes =
-        this.workflowAttributeRepository.list(
-            state.getId(), WorkflowAttributeReferenceType.WORKFLOW_STATE);
-
-    return new ResponseAttributeWithDescriptionList(attributes, descriptions);
+    return this.workflowAttributeRepository
+        .list(stateId, WorkflowAttributeReferenceType.WORKFLOW_STATE)
+        .stream()
+        .map(attr -> new ResponseAttribute(attr))
+        .collect(Collectors.toList());
   }
 }

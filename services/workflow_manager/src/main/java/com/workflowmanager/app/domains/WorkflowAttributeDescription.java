@@ -77,6 +77,8 @@ public class WorkflowAttributeDescription {
     this.expression = dto.expression;
     this.regex = dto.regex;
     this.enumDescription = dto.enumDescription;
+    this.creationTime = Instant.now();
+    this.updateTime = Instant.now();
   }
 
   public Instant getCreationTime() {

@@ -8,6 +8,9 @@ import {
   Extends,
   IntegerSchema,
   DecimalSchema,
+  IntegerSchemaRev,
+  DecimalSchemaRev,
+  DayjsTimeSchemaRev,
 } from "common_schemas";
 // need these empty imports for typing to work
 import "dayjs";
@@ -21,13 +24,6 @@ import { makeObservable, observable, action } from "mobx";
  * of types that are only relevant internally to the store. Breaking it into smaller
  * files for chunking doesn’t offer much benefit, as nearly all store code is needed
  * all the time for this app.
- *
- * This store will always result in an API call, the application should be careful
- * to only use the load functions once (on component render). The store will take care
- * of syncing according to websocket updates. Intended use of the store:
- *
- * // in the top of the page, declare your "dependencies"
- * useEffect(() => { void store.loadWorkflows(); return () => store.unsub("workflows") }, [])
  */
 export class WorkflowStore {
   public constructor(workflowManagerService?: WorkflowManagerService) {
@@ -36,33 +32,46 @@ export class WorkflowStore {
 
     makeObservable<
       WorkflowStore,
-      | "upsertWorkflow"
-      | "upsertState"
-      | "upsertEntity"
       | "upsertWorkflows"
+      | "upsertStates"
       | "upsertEntities"
+      | "upsertAttributeDescriptions"
+      | "upsertAttributes"
     >(this, {
       workflows: observable,
       workflowStates: observable,
+      workflowStatesByWorkflow: observable,
       workflowEntities: observable,
+      workflowEntitiesByState: observable,
       workflowAttributes: observable,
+      attributeDescriptionsByWorkflows: observable,
       stateAttributes: observable,
       entityAttributes: observable,
-      workflowsIdByEntityIds: observable,
-      stateIdByEntityIds: observable,
-      workflowEntityIdsByState: observable,
-      upsertWorkflow: action,
-      upsertState: action,
-      upsertEntity: action,
       upsertWorkflows: action,
+      upsertStates: action,
       upsertEntities: action,
+      upsertAttributeDescriptions: action,
+      upsertAttributes: action,
     });
   }
 
   public workflowManagerService: WorkflowManagerService;
   public workflows: Map<number, Workflow> = new Map();
   public workflowStates: Map<number, WorkflowState> = new Map();
+  public workflowStatesByWorkflow: Map<number, Map<number, WorkflowState>> =
+    new Map();
   public workflowEntities: Map<number, WorkflowEntity> = new Map();
+  public workflowEntitiesByState: Map<number, Map<number, WorkflowEntity>> =
+    new Map();
+  public attributeDescriptionsByWorkflows: Map<
+    number,
+    {
+      [K in WorkflowAttributeReferenceType]: Map<
+        string,
+        WorkflowAttributeDescription
+      >;
+    }
+  > = new Map();
   public workflowAttributes: Map<number, Map<string, WorkflowAttribute>> =
     new Map();
   public stateAttributes: Map<number, Map<string, WorkflowAttribute>> =
@@ -70,25 +79,116 @@ export class WorkflowStore {
   public entityAttributes: Map<number, Map<string, WorkflowAttribute>> =
     new Map();
 
-  /** map from entityId -> workflowId */
-  public workflowsIdByEntityIds: Map<number, number> = new Map();
-  /** map from entityId -> currentStateId */
-  public stateIdByEntityIds: Map<number, number> = new Map();
-  /** map from stateId -> id of all entities with currentStateId = stateId */
-  public workflowEntityIdsByState: Map<number, EntityIdsByState> = new Map();
+  public getAttributeDescription = ({
+    workflowId,
+    refType,
+    descriptionName,
+  }: {
+    workflowId: number;
+    refType: WorkflowAttributeReferenceType;
+    descriptionName: string;
+  }) => {
+    return this.attributeDescriptionsByWorkflows
+      .get(workflowId)
+      ?.[refType].get(descriptionName);
+  };
+
+  public getAttribute = ({
+    baseEntityId,
+    refType,
+    descriptionName,
+  }: {
+    baseEntityId: number;
+    refType: WorkflowAttributeReferenceType;
+    descriptionName: string;
+  }) => {
+    return this.mapAttributesByRefType(refType)
+      .get(baseEntityId)
+      ?.get(descriptionName);
+  };
+
+  public getFromIdAndReference = ({
+    refType,
+    baseEntityId,
+  }: {
+    refType: WorkflowAttributeReferenceType;
+    baseEntityId: number;
+  }) => {
+    const map = this.mapByRefType(refType);
+
+    return map.get(baseEntityId);
+  };
 
   public createWorkflow = async (
     ...args: Parameters<WorkflowManagerService["createWorkflow"]>
   ) => {
     const workflow = await this.workflowManagerService.createWorkflow(...args);
 
-    this.upsertWorkflow({ workflow, attrs: [] });
+    this.upsertWorkflows([workflow]);
+  };
+
+  public createState = async (
+    ...args: Parameters<WorkflowManagerService["createState"]>
+  ) => {
+    const state = await this.workflowManagerService.createState(...args);
+
+    this.upsertStates([state]);
+  };
+
+  public createEntity = async (
+    ...args: Parameters<WorkflowManagerService["createEntity"]>
+  ) => {
+    const entity = await this.workflowManagerService.createEntity(...args);
+
+    this.upsertEntities([entity]);
+  };
+
+  public createAttributeDescription = async (
+    ...args: Parameters<WorkflowManagerService["createAttributeDescription"]>
+  ) => {
+    const description =
+      await this.workflowManagerService.createAttributeDescription(...args);
+
+    this.upsertAttributeDescriptions(args[0].workflowId, [description]);
+  };
+
+  public setAttribute = async (
+    ...args: Parameters<WorkflowManagerService["setAttribute"]>
+  ) => {
+    const attribute = await this.workflowManagerService.setAttribute(...args);
+
+    this.upsertAttributes(args[0].refType, [attribute]);
+  };
+
+  public setWorkflowConfig = async (
+    ...args: Parameters<WorkflowManagerService["setWorkflowConfig"]>
+  ) => {
+    const workflow = await this.workflowManagerService.setWorkflowConfig(
+      ...args,
+    );
+
+    this.upsertWorkflows([workflow]);
+  };
+
+  public loadAttributeDescriptions = async (workflowId: number) => {
+    const descriptions =
+      await this.workflowManagerService.getAttributesDescription(workflowId);
+
+    this.upsertAttributeDescriptions(workflowId, descriptions);
+  };
+
+  public loadAttributes = async (
+    ...args: Parameters<WorkflowManagerService["getAttributes"]>
+  ) => {
+    const attrs = await this.workflowManagerService.getAttributes(...args);
+
+    this.upsertAttributes(args[0].refType, attrs);
   };
 
   public loadWorkflow = async (workflowId: number) => {
     const res = await this.workflowManagerService.getWorkflow(workflowId);
 
-    this.upsertWorkflow(res);
+    this.upsertWorkflows([res]);
   };
 
   public loadWorkflows = async () => {
@@ -98,143 +198,164 @@ export class WorkflowStore {
   };
 
   public loadState = async (workflowStateId: number) => {
-    const res =
-      await this.workflowManagerService.getWorkflowState(workflowStateId);
+    const res = await this.workflowManagerService.getState(workflowStateId);
 
-    this.upsertState(res);
+    this.upsertStates([res]);
+  };
+
+  public loadStates = async (workflowId: number) => {
+    const res =
+      await this.workflowManagerService.listStatesByWorkflow(workflowId);
+
+    this.upsertStates(res);
   };
 
   public loadEntity = async (entityId: number) => {
-    const res = await this.workflowManagerService.getWorkflowEntity(entityId);
+    const res = await this.workflowManagerService.getEntity(entityId);
 
-    this.upsertEntity(res);
+    this.upsertEntities([res]);
   };
 
-  public getNextWorkflowsByState = async (stateId: number) => {
-    await this.loadState(stateId);
-
-    const idsToFetch = [];
-
-    for (const id of this.workflowEntityIdsByState.get(stateId)?.ids ?? []) {
-      if (!this.workflowEntities.has(id)) {
-        idsToFetch.push(id);
-        if (idsToFetch.length > 50) break;
-      }
-    }
-
+  public loadEntitiesByState = async (stateId: number) => {
     const entities =
-      await this.workflowManagerService.listWorkflowEntitiesByIds(idsToFetch);
+      await this.workflowManagerService.listEntitiesByState(stateId);
 
     this.upsertEntities(entities);
   };
 
-  private upsertWorkflow = ({
-    workflow,
-    attrs,
-  }: {
-    workflow: Workflow;
-    attrs: WorkflowAttribute[];
-  }) => {
-    let curWorkflow = this.workflows.get(workflow.id);
-    if (!curWorkflow || curWorkflow.updateTime.isBefore(workflow.updateTime))
-      this.workflows.set(workflow.id, workflow);
-
-    let curWorkflowAttrs = this.workflowAttributes.get(workflow.id);
-    if (!curWorkflowAttrs) {
-      this.workflowAttributes.set(
-        workflow.id,
-        new Map(attrs.map((attr) => [attr.name, attr])),
-      );
-    } else {
-      for (const attr of attrs) {
-        let curAttr = curWorkflowAttrs.get(attr.name);
-        if (!curAttr || curAttr.updateTime.isBefore(attr.updateTime))
-          curWorkflowAttrs.set(attr.name, attr);
-      }
-    }
-  };
-
-  private upsertState = ({
-    state,
-    attrs,
-    entityIds,
-  }: {
-    state: WorkflowState;
-    attrs: WorkflowAttribute[];
-    entityIds: EntityIdsByState;
-  }) => {
-    let curState = this.workflowStates.get(state.id);
-    if (!curState || curState.updateTime.isBefore(state.updateTime))
-      this.workflowStates.set(state.id, state);
-
-    let curEntityIds = this.workflowEntityIdsByState.get(state.id);
-    if (
-      !curEntityIds ||
-      curEntityIds.lastCurrentEntitiesChange.isBefore(
-        entityIds.lastCurrentEntitiesChange,
-      )
-    )
-      this.workflowEntityIdsByState.set(state.id, entityIds);
-
-    let curStateAttrs = this.stateAttributes.get(state.id);
-    if (!curStateAttrs) {
-      this.stateAttributes.set(
-        state.id,
-        new Map(attrs.map((attr) => [attr.name, attr])),
-      );
-    } else {
-      for (const attr of attrs) {
-        let curAttr = curStateAttrs.get(attr.name);
-        if (!curAttr || curAttr.updateTime.isBefore(attr.updateTime))
-          curStateAttrs.set(attr.name, attr);
-      }
-    }
-  };
-
-  private upsertEntity = ({
-    entity,
-    attrs,
-  }: {
-    entity: WorkflowEntity;
-    attrs: WorkflowAttribute[];
-  }) => {
-    let curEntity = this.workflowEntities.get(entity.id);
-    if (!curEntity || curEntity.updateTime.isBefore(entity.updateTime)) {
-      this.workflowEntities.set(entity.id, entity);
-      this.workflowsIdByEntityIds.set(entity.id, entity.workflowId);
-      this.stateIdByEntityIds.set(entity.id, entity.currentStateId);
-    }
-
-    let curStateAttrs = this.entityAttributes.get(entity.id);
-    if (!curStateAttrs) {
-      this.entityAttributes.set(
-        entity.id,
-        new Map(attrs.map((attr) => [attr.name, attr])),
-      );
-    } else {
-      for (const attr of attrs) {
-        let curAttr = curStateAttrs.get(attr.name);
-        if (!curAttr || curAttr.updateTime.isBefore(attr.updateTime))
-          curStateAttrs.set(attr.name, attr);
-      }
-    }
-  };
-
   private upsertWorkflows = (workflows: Workflow[]) => {
     for (const workflow of workflows) {
-      let curWorkflow = this.workflows.get(workflow.id);
+      const curWorkflow = this.workflows.get(workflow.id);
       if (!curWorkflow || curWorkflow.updateTime.isBefore(workflow.updateTime))
         this.workflows.set(workflow.id, workflow);
     }
   };
 
+  private upsertStates = (states: WorkflowState[]) => {
+    for (const state of states) {
+      const curState = this.workflowEntities.get(state.id);
+      if (!curState || curState.updateTime.isBefore(state.updateTime)) {
+        this.workflowStates.set(state.id, state);
+
+        const curStates = this.workflowStatesByWorkflow.get(state.workflowId);
+        if (!curStates)
+          this.workflowStatesByWorkflow.set(
+            state.workflowId,
+            new Map([[state.id, state]]),
+          );
+        else curStates.set(state.id, state);
+      }
+    }
+  };
+
   private upsertEntities = (entities: WorkflowEntity[]) => {
     for (const entity of entities) {
-      let curEntity = this.workflowEntities.get(entity.id);
+      const curEntity = this.workflowEntities.get(entity.id);
       if (!curEntity || curEntity.updateTime.isBefore(entity.updateTime)) {
         this.workflowEntities.set(entity.id, entity);
-        this.workflowsIdByEntityIds.set(entity.id, entity.workflowId);
-        this.stateIdByEntityIds.set(entity.id, entity.currentStateId);
+
+        const entitiesByState = this.workflowEntitiesByState.get(
+          entity.currentStateId,
+        );
+        if (!entitiesByState)
+          this.workflowEntitiesByState.set(
+            entity.currentStateId,
+            new Map([[entity.id, entity]]),
+          );
+        else entitiesByState.set(entity.id, entity);
+      }
+    }
+  };
+
+  private upsertAttributeDescriptions = (
+    workflowId: number,
+    descriptions: WorkflowAttributeDescription[],
+  ) => {
+    let descriptionsMap = this.attributeDescriptionsByWorkflows.get(workflowId);
+    if (!descriptionsMap) {
+      this.attributeDescriptionsByWorkflows.set(workflowId, {
+        WORKFLOW: new Map(),
+        WORKFLOW_STATE: new Map(),
+        WORKFLOW_ENTITY: new Map(),
+      });
+      // need to get from map again because mobx
+      descriptionsMap = this.attributeDescriptionsByWorkflows.get(workflowId)!;
+    }
+
+    for (const description of descriptions) {
+      const curDescription = descriptionsMap[description.refType].get(
+        description.name,
+      );
+      if (
+        !curDescription ||
+        curDescription.updateTime.isBefore(description.updateTime)
+      )
+        descriptionsMap[description.refType].set(description.name, description);
+    }
+  };
+
+  private upsertAttributes = (
+    refType: WorkflowAttributeReferenceType,
+    attrs: WorkflowAttribute[],
+  ) => {
+    let attrMapMyBaseEntityId;
+    switch (refType) {
+      case "WORKFLOW": {
+        attrMapMyBaseEntityId = this.workflowAttributes;
+        break;
+      }
+      case "WORKFLOW_STATE": {
+        attrMapMyBaseEntityId = this.stateAttributes;
+        break;
+      }
+      case "WORKFLOW_ENTITY": {
+        attrMapMyBaseEntityId = this.entityAttributes;
+      }
+    }
+
+    for (const attr of attrs) {
+      let attrMapByDescriptionName = attrMapMyBaseEntityId.get(
+        attr.baseEntityId,
+      );
+      if (!attrMapByDescriptionName) {
+        attrMapMyBaseEntityId.set(attr.baseEntityId, new Map());
+        attrMapByDescriptionName = attrMapMyBaseEntityId.get(
+          attr.baseEntityId,
+        )!;
+      }
+
+      const curAttr = attrMapByDescriptionName.get(attr.descriptionName);
+      if (!curAttr || curAttr.updateTime.isBefore(attr.updateTime))
+        attrMapByDescriptionName.set(attr.descriptionName, attr);
+    }
+  };
+
+  private mapByRefType = (refType: WorkflowAttributeReferenceType) => {
+    switch (refType) {
+      case "WORKFLOW": {
+        return this.workflows;
+      }
+      case "WORKFLOW_STATE": {
+        return this.workflowStates;
+      }
+      case "WORKFLOW_ENTITY": {
+        return this.workflowEntities;
+      }
+    }
+  };
+
+  private mapAttributesByRefType = (
+    refType: WorkflowAttributeReferenceType,
+  ) => {
+    switch (refType) {
+      case "WORKFLOW": {
+        return this.workflowAttributes;
+      }
+      case "WORKFLOW_STATE": {
+        return this.stateAttributes;
+      }
+      case "WORKFLOW_ENTITY": {
+        return this.entityAttributes;
       }
     }
   };
@@ -257,42 +378,140 @@ class WorkflowManagerService {
     return parsers.WorkflowSchema.parse(response?.data);
   };
 
-  public getWorkflow = async (workflowId: number) => {
-    const [workflow, attrs] = await Promise.all([
-      this.getWorkflowInner(workflowId),
-      this.getWorkflowAttributes(workflowId),
-    ]);
+  public createState = async (
+    newState: RequestNewWorkflowState,
+    workflowId: number,
+  ) => {
+    const parsedNewState =
+      parsers.RequestNewWorkflowStateSchema.parse(newState);
 
-    return {
-      workflow,
-      attrs: attrs.items,
-    };
+    const response = await this.client.POST(
+      "/workflows/{workflowId}/workflow-states",
+      {
+        body: parsedNewState,
+        params: {
+          path: { workflowId },
+        },
+      },
+    );
+
+    return parsers.WorkflowStateSchema.parse(response?.data);
   };
 
-  public getWorkflowState = async (workflowStateId: number) => {
-    const [state, attrs, entityIds] = await Promise.all([
-      this.getWorkflowStateInner(workflowStateId),
-      this.getWorkflowStateAttributes(workflowStateId),
-      this.listWorkflowEntityIdsByWorkflowStateId(workflowStateId),
-    ]);
+  public createEntity = async (
+    newEntity: RequestNewWorkflowEntity,
+    workflowId: number,
+  ) => {
+    const parsedNewEntity =
+      parsers.RequestNewWorkflowEntitySchema.parse(newEntity);
 
-    return {
-      state,
-      attrs: attrs.items,
-      entityIds,
-    };
+    const response = await this.client.POST(
+      "/workflows/{workflowId}/workflow-entities",
+      {
+        body: parsedNewEntity,
+        params: {
+          path: { workflowId },
+        },
+      },
+    );
+
+    return parsers.WorkflowEntitySchema.parse(response?.data);
   };
 
-  public getWorkflowEntity = async (workflowEntityId: number) => {
-    const [entity, attrs] = await Promise.all([
-      this.getWorkflowEntityInner(workflowEntityId),
-      this.getWorkflowEntityAttributes(workflowEntityId),
-    ]);
+  public createAttributeDescription = async ({
+    workflowId,
+    ...body
+  }: { workflowId: number } & z.infer<
+    typeof parsers.RequestNewAttributeDescriptionSchema
+  >) => {
+    const response = await this.client.POST(
+      "/workflows/{workflowId}/attribute-descriptions",
+      {
+        params: {
+          path: { workflowId },
+        },
+        body,
+      },
+    );
 
-    return {
-      entity,
-      attrs: attrs.items,
-    };
+    return parsers.WorkflowAttributeDescriptionSchema.parse(response?.data);
+  };
+
+  public setAttribute = async ({
+    baseEntityId,
+    refType,
+    attr,
+    attributeName,
+  }: {
+    baseEntityId: number;
+    refType: WorkflowAttributeReferenceType;
+    attr: z.infer<typeof parsers.RequestNewAttributeSchema>;
+    attributeName: string;
+  }) => {
+    let response;
+    switch (refType) {
+      case "WORKFLOW": {
+        response = await this.client.PUT(
+          "/workflows/{workflowId}/attributes/{attributeName}",
+          {
+            body: attr,
+            params: {
+              path: {
+                workflowId: baseEntityId,
+                attributeName,
+              },
+            },
+          },
+        );
+      }
+      case "WORKFLOW_STATE": {
+        response = await this.client.PUT(
+          "/workflow-states/{stateId}/attributes/{attributeName}",
+          {
+            body: attr,
+            params: {
+              path: {
+                stateId: baseEntityId,
+                attributeName,
+              },
+            },
+          },
+        );
+      }
+      case "WORKFLOW_ENTITY": {
+        response = await this.client.PUT(
+          "/workflow-entities/{entityId}/attributes/{attributeName}",
+          {
+            body: attr,
+            params: {
+              path: {
+                entityId: baseEntityId,
+                attributeName,
+              },
+            },
+          },
+        );
+      }
+    }
+
+    return parsers.WorkflowAttributeSchema.parse(response?.data);
+  };
+
+  public setWorkflowConfig = async (
+    workflowId: number,
+    config: RequestUpdateWorkflowConfig,
+  ) => {
+    const parsedConfig =
+      parsers.RequestUpdateWorkflowConfigSchema.parse(config);
+
+    const response = await this.client.PUT("/workflows/{workflowId}/config", {
+      params: {
+        path: { workflowId },
+      },
+      body: parsedConfig,
+    });
+
+    return parsers.WorkflowSchema.parse(response.data);
   };
 
   public listWorkflows = async () => {
@@ -304,12 +523,12 @@ class WorkflowManagerService {
     return parsers.WorkflowSchema.array().parse(response?.data);
   };
 
-  public listWorkflowStates = async (workflowStateId: number) => {
+  public listStatesByWorkflow = async (workflowId: number) => {
     const response = await this.client.GET(
-      "/workflow-states/{workflowStateId}",
+      "/workflows/{workflowId}/workflow-states",
       {
         params: {
-          path: { workflowStateId },
+          path: { workflowId },
         },
       },
     );
@@ -317,15 +536,18 @@ class WorkflowManagerService {
     // TODO: response error handling
 
     // TODO: parser error handling
-    return parsers.WorkflowStateSchema.parse(response?.data);
+    return parsers.WorkflowStateSchema.array().parse(response?.data);
   };
 
-  public listWorkflowEntitiesByIds = async (ids: number[]) => {
-    const response = await this.client.POST("/workflow-entities/list", {
-      body: {
-        ids,
+  public listEntitiesByState = async (workflowStateId: number) => {
+    const response = await this.client.GET(
+      "/workflow-states/{workflowStateId}/workflow-entities",
+      {
+        params: {
+          path: { workflowStateId },
+        },
       },
-    });
+    );
 
     // TODO: response error handling
 
@@ -333,9 +555,57 @@ class WorkflowManagerService {
     return parsers.WorkflowEntitySchema.array().parse(response?.data);
   };
 
-  public listWorkflowEntityIdsFromWorkflowId = async (workflowId: number) => {
+  public getAttributes = async ({
+    workflowId,
+    refType,
+    baseEntityId,
+  }: {
+    workflowId: number;
+    refType: WorkflowAttributeReferenceType;
+    baseEntityId: number;
+  }) => {
+    let response;
+    switch (refType) {
+      case "WORKFLOW": {
+        response = await this.client.GET("/workflows/{workflowId}/attributes", {
+          params: {
+            path: { workflowId: baseEntityId },
+          },
+        });
+        break;
+      }
+      case "WORKFLOW_STATE": {
+        response = await this.client.GET(
+          "/workflow-states/{stateId}/attributes",
+          {
+            params: {
+              path: { stateId: baseEntityId },
+            },
+          },
+        );
+        break;
+      }
+      case "WORKFLOW_ENTITY": {
+        response = await this.client.GET(
+          "/workflow-entities/{entityId}/attributes",
+          {
+            params: {
+              path: { entityId: baseEntityId },
+            },
+          },
+        );
+      }
+    }
+
+    // TODO: response error handling
+
+    // TODO: parser error handling
+    return parsers.WorkflowAttributeSchema.array().parse(response?.data);
+  };
+
+  public getAttributesDescription = async (workflowId: number) => {
     const response = await this.client.GET(
-      "/workflows/{workflowId}/workflow-entities/ids",
+      "/workflows/{workflowId}/attribute-descriptions",
       {
         params: {
           path: { workflowId },
@@ -346,58 +616,12 @@ class WorkflowManagerService {
     // TODO: response error handling
 
     // TODO: parser error handling
-    return z.number().array().parse(response?.data);
-  };
-
-  public listWorkflowEntityIdsByWorkflowStateId = async (
-    workflowStateId: number,
-  ) => {
-    const response = await this.client.GET(
-      "/workflow-states/{workflowStateId}/workflow-entities/ids",
-      {
-        params: {
-          path: { workflowStateId },
-        },
-      },
-    );
-
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return parsers.ResponseEntityIdsByStateSchema.parse(response?.data);
-  };
-
-  public constructor(client?: ReturnType<typeof createClient<paths>>) {
-    console.log({ url: import.meta.env.VITE_WORKFLOW_MANAGER_BASE_URL });
-
-    this.client =
-      client ??
-      createClient<paths>({
-        baseUrl: import.meta.env.VITE_WORKFLOW_MANAGER_BASE_URL,
-      });
-  }
-
-  private client;
-
-  private getWorkflowAttributes = async (workflowId: number) => {
-    const response = await this.client.GET(
-      "/workflows/{workflowId}/attributes",
-      {
-        params: {
-          path: { workflowId },
-        },
-      },
-    );
-
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return parsers.WorkflowAttributeWithDescriptionListSchema.parse(
+    return parsers.WorkflowAttributeDescriptionSchema.array().parse(
       response?.data,
     );
   };
 
-  private getWorkflowInner = async (workflowId: number) => {
+  public getWorkflow = async (workflowId: number) => {
     const response = await this.client.GET("/workflows/{workflowId}", {
       params: {
         path: { workflowId },
@@ -410,25 +634,7 @@ class WorkflowManagerService {
     return parsers.WorkflowSchema.parse(response?.data);
   };
 
-  private getWorkflowStateAttributes = async (stateId: number) => {
-    const response = await this.client.GET(
-      "/workflow-states/{stateId}/attributes",
-      {
-        params: {
-          path: { stateId },
-        },
-      },
-    );
-
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return parsers.WorkflowAttributeWithDescriptionListSchema.parse(
-      response?.data,
-    );
-  };
-
-  private getWorkflowStateInner = async (workflowStateId: number) => {
+  public getState = async (workflowStateId: number) => {
     const response = await this.client.GET(
       "/workflow-states/{workflowStateId}",
       {
@@ -444,25 +650,7 @@ class WorkflowManagerService {
     return parsers.WorkflowStateSchema.parse(response?.data);
   };
 
-  private getWorkflowEntityAttributes = async (entityId: number) => {
-    const response = await this.client.GET(
-      "/workflow-entities/{entityId}/attributes",
-      {
-        params: {
-          path: { entityId },
-        },
-      },
-    );
-
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return parsers.WorkflowAttributeWithDescriptionListSchema.parse(
-      response?.data,
-    );
-  };
-
-  private getWorkflowEntityInner = async (workflowEntityId: number) => {
+  public getEntity = async (workflowEntityId: number) => {
     const response = await this.client.GET(
       "/workflow-entities/{workflowEntityId}",
       {
@@ -477,19 +665,41 @@ class WorkflowManagerService {
     // TODO: parser error handling
     return parsers.WorkflowEntitySchema.parse(response?.data);
   };
+
+  public constructor(client?: ReturnType<typeof createClient<paths>>) {
+    console.log({ url: import.meta.env.VITE_WORKFLOW_MANAGER_BASE_URL });
+
+    this.client =
+      client ??
+      createClient<paths>({
+        baseUrl: import.meta.env.VITE_WORKFLOW_MANAGER_BASE_URL,
+      });
+  }
+
+  private client;
 }
 
 export type Workflow = z.infer<typeof parsers.WorkflowSchema>;
 export type WorkflowState = z.infer<typeof parsers.WorkflowStateSchema>;
 export type WorkflowEntity = z.infer<typeof parsers.WorkflowEntitySchema>;
-export type WorkflowAttribute = z.infer<
-  typeof parsers.WorkflowAttributeWithDescriptionSchema
+export type WorkflowAttribute = z.infer<typeof parsers.WorkflowAttributeSchema>;
+export type WorkflowAttributeDescription = z.infer<
+  typeof parsers.WorkflowAttributeDescriptionSchema
 >;
 export type EntityIdsByState = z.infer<
   typeof parsers.ResponseEntityIdsByStateSchema
 >;
 export type RequestNewWorkflow = z.input<
   typeof parsers.RequestNewWorkflowSchema
+>;
+export type RequestNewWorkflowState = z.input<
+  typeof parsers.RequestNewWorkflowStateSchema
+>;
+export type RequestNewWorkflowEntity = z.input<
+  typeof parsers.RequestNewWorkflowEntitySchema
+>;
+export type RequestUpdateWorkflowConfig = z.input<
+  typeof parsers.RequestUpdateWorkflowConfigSchema
 >;
 
 export const WORKFLOW_ATTRIBUTE_REFERENCE_TYPES = [
@@ -499,6 +709,11 @@ export const WORKFLOW_ATTRIBUTE_REFERENCE_TYPES = [
 ] as const;
 export type WorkflowAttributeReferenceType =
   (typeof WORKFLOW_ATTRIBUTE_REFERENCE_TYPES)[number];
+export const WorkflowAttributeReferenceTypePretty = {
+  WORKFLOW: "Workflow",
+  WORKFLOW_STATE: "State",
+  WORKFLOW_ENTITY: "Entity",
+} as const satisfies Record<WorkflowAttributeReferenceType, string>;
 export const WORKFLOW_ATTRIBUTE_TYPES = [
   "INTEGER",
   "FLOATING",
@@ -510,8 +725,18 @@ export const WORKFLOW_ATTRIBUTE_TYPES = [
   "TEXT",
 ] as const;
 export type WorkflowAttributeType = (typeof WORKFLOW_ATTRIBUTE_TYPES)[number];
+export const WorkflowAttributeTypePretty = {
+  INTEGER: "integer",
+  FLOATING: "floating",
+  ENUMERATION: "enumeration",
+  DECIMAL: "decimal",
+  DATE: "date",
+  TIMESTAMP: "timestamp",
+  FLAG: "flag",
+  TEXT: "text",
+} as const satisfies Record<WorkflowAttributeType, string>;
 
-module parsers {
+export module parsers {
   const ENTITY_MAX_NAME_LENGTH = 50;
 
   const EntitySchema = z.object({
@@ -564,41 +789,6 @@ module parsers {
     text: z.string().nullish().transform(standardUndefined),
   });
 
-  // TODO: this won't sync correctly, will have to split
-  // attributes from descriptions (both here and service)
-  export const WorkflowAttributeWithDescriptionSchema = z
-    .object({
-      attr: WorkflowAttributeSchema.nullish().transform(standardUndefined),
-      description: WorkflowAttributeDescriptionSchema,
-    })
-    .transform((attrWithDescription) => {
-      const attr = attrWithDescription.attr;
-      const description = attrWithDescription.description;
-      let updateTime = description.updateTime;
-      if (attr?.updateTime && description.updateTime < attr.updateTime)
-        updateTime = attr.updateTime;
-
-      return {
-        name: description.name,
-        id: attr?.baseEntityId,
-        parentWorkflowId: description.parentWorkflowId,
-        refType: description.refType,
-        expression: description.expression,
-        regex: description.regex,
-        maxLength: description.maxLength,
-        enumDescription: description.enumDescription,
-        ...deserializeAttributeFields(
-          attrWithDescription.description.attrType,
-          attr,
-        ),
-        updateTime,
-      };
-    });
-
-  export const WorkflowAttributeWithDescriptionListSchema = z.object({
-    items: WorkflowAttributeWithDescriptionSchema.array(),
-  });
-
   export const ChangeStateRulesSchema = z.object({
     fromId: z.number(),
     toId: z.number(),
@@ -629,30 +819,27 @@ module parsers {
 
   export const RequestNewWorkflowStateSchema = RequestBaseEntitySchema;
 
-  export const RequestNewworkflowEntitySchema = RequestBaseEntitySchema;
+  export const RequestNewWorkflowEntitySchema = RequestBaseEntitySchema;
 
-  export const RequestNewAttribute = z.object({
-    integer: IntegerSchema.nullish().transform(standardUndefined),
-    floating: z.number().nullish().transform(standardUndefined),
-    enumeration: z.string().nullish().transform(standardUndefined),
-    decimal: DecimalSchema.nullish().transform(standardUndefined),
-    date: DayjsSchema.nullish().transform(standardUndefined),
-    timestamp: DayjsSchema.nullish().transform(standardUndefined),
-    flag: z.boolean().nullish().transform(standardUndefined),
-    text: z.string().nullish().transform(standardUndefined),
+  export const RequestNewAttributeSchema = z.object({
+    integer: IntegerSchemaRev.optional(),
+    floating: z.number().optional(),
+    enumeration: z.string().optional(),
+    decimal: DecimalSchemaRev.optional(),
+    date: DayjsTimeSchemaRev.optional(),
+    timestamp: DayjsTimeSchemaRev.optional(),
+    flag: z.boolean().optional(),
+    text: z.string().optional(),
   });
 
   export const RequestNewAttributeDescriptionSchema = z.object({
     name: z.string(),
-    parentWorkflowId: z.number(),
     refType: z.enum(WORKFLOW_ATTRIBUTE_REFERENCE_TYPES),
     attrType: z.enum(WORKFLOW_ATTRIBUTE_TYPES),
-    expression:
-      WorkflowAttributeExprRuleSchema.nullish().transform(standardUndefined),
-    regex:
-      WorkflowAttributeRegexRuleSchema.nullish().transform(standardUndefined),
-    maxLength: z.number().nullish().transform(standardUndefined),
-    enumDescription: z.string().array().nullish().transform(standardUndefined),
+    expression: WorkflowAttributeExprRuleSchema.optional(),
+    regex: WorkflowAttributeRegexRuleSchema.optional(),
+    maxLength: z.number().optional(),
+    enumDescription: z.string().array().optional(),
   });
 
   export const RequestUpdateWorkflowConfigSchema = z.object({
@@ -746,24 +933,6 @@ module parsers {
       Extends<
         components["schemas"]["ResponseAttributeDescription"],
         z.input<typeof WorkflowAttributeDescriptionSchema>
-      >
-    >,
-    Assert<
-      Extends<
-        components["schemas"]["ResponseAttributeWithDescription"],
-        z.input<typeof WorkflowAttributeWithDescriptionSchema>
-      >
-    >,
-    Assert<
-      Extends<
-        components["schemas"]["ResponseAttributeWithDescriptionList"],
-        z.input<typeof WorkflowAttributeWithDescriptionListSchema>
-      >
-    >,
-    Assert<
-      Extends<
-        components["schemas"]["ResponseEntityIdsByState"],
-        z.input<typeof ResponseEntityIdsByStateSchema>
       >
     >,
   ];

@@ -9,7 +9,6 @@ import java.util.List;
 
 public class RequestNewAttributeDescription {
   @NotNull public String name;
-  @NotNull public Integer parentWorkflowId;
   @NotNull public WorkflowAttributeReferenceType refType;
   @NotNull public WorkflowAttributeType attrType;
 

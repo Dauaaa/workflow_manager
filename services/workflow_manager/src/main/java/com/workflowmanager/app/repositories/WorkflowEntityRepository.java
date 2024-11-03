@@ -1,7 +1,6 @@
 package com.workflowmanager.app.repositories;
 
 import com.workflowmanager.app.domains.WorkflowEntity;
-import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
@@ -20,20 +19,16 @@ public interface WorkflowEntityRepository extends Repository<WorkflowEntity, Int
       @Param("id") Integer id, @Param("clientId") Integer clientId);
 
   @Query(
-      "SELECT we.id FROM WorkflowEntity we WHERE we.workflow.id = :workflowId AND we.clientId ="
-          + " :clientId ORDER BY we.creationTime")
+      "SELECT we FROM WorkflowEntity we WHERE we.currentState.id = :stateId AND we.clientId ="
+          + " :clientId")
   @Transactional(readOnly = true)
-  List<@NotNull Integer> listIdsByWorkflowIdAndClientId(
-      @Param("workflowId") Integer workflowId, @Param("clientId") Integer clientId);
-
-  @Query(
-      "SELECT we.id FROM WorkflowEntity we WHERE we.currentState.id = :stateId AND we.clientId ="
-          + " :clientId ORDER BY we.timeMovedToCurrentState DESC")
-  @Transactional(readOnly = true)
-  List<@NotNull Integer> listIdsByStateIdAndClientId(
+  List<WorkflowEntity> listByStateAndClient(
       @Param("stateId") Integer stateId, @Param("clientId") Integer clientId);
 
-  @Query("SELECT we FROM WorkflowEntity we WHERE we.clientId = :clientId AND we.id IN :ids")
-  List<WorkflowEntity> listByIds(
-      @Param("ids") List<Integer> ids, @Param("clientId") Integer clientId);
+  @Query(
+      "SELECT we FROM WorkflowEntity we WHERE we.workflow.id = :workflowId AND we.clientId ="
+          + " :clientId")
+  @Transactional(readOnly = true)
+  List<WorkflowEntity> listByWorkflowAndClient(
+      @Param("workflowId") Integer workflowId, @Param("clientId") Integer clientId);
 }

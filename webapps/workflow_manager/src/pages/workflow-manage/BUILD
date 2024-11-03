@@ -13,5 +13,14 @@ vite_ts_project(
         "//webapps/workflow_manager:node_modules/@types/react-dom",
         "//webapps/workflow_manager:node_modules/react",
         "//webapps/workflow_manager:node_modules/react-router-dom",
+        "//webapps/workflow_manager:node_modules/mobx-react-lite",
+        "//webapps/workflow_manager:node_modules/@radix-ui/react-icons",
+        "//webapps/workflow_manager/src/features:new-state-form",
+        "//webapps/workflow_manager/src/features:new-entity-form",
+        "//webapps/workflow_manager/src/features:set-config-form",
+        "//webapps/workflow_manager/src/features:attributes-form",
+        "//webapps/workflow_manager/src/components/ui",
+        "//webapps/workflow_manager/src/lib:utils",
+        "//webapps/workflow_manager/src/store:workflow-store",
     ]
 )

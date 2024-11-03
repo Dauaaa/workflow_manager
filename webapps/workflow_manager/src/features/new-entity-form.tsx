@@ -26,10 +26,12 @@ const FormSchema = z.object({
 
 type FormType = z.infer<typeof FormSchema>;
 
-export const NewWorkflowForm = ({
+export const NewEntityForm = ({
   buttonOverride,
+  workflowId,
 }: {
   buttonOverride?: React.ReactNode;
+  workflowId: number;
 }) => {
   const form = useForm<FormType>({
     resolver: zodResolver(FormSchema),
@@ -43,7 +45,9 @@ export const NewWorkflowForm = ({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(workflowStore.createWorkflow)}
+        onSubmit={form.handleSubmit((newEntity) =>
+          workflowStore.createEntity(newEntity, workflowId),
+        )}
         className="space-y-8"
       >
         <FormField
@@ -51,9 +55,9 @@ export const NewWorkflowForm = ({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Workflow name</FormLabel>
+              <FormLabel>Entity name</FormLabel>
               <FormControl>
-                <Input placeholder="my-workflow" {...field} />
+                <Input placeholder="my-entity" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

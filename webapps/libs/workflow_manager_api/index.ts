@@ -75,7 +75,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list"];
         put?: never;
         post: operations["createWorkflow"];
         delete?: never;
@@ -107,7 +107,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description List all child entities of a workflow */
+        get: operations["listByWorkflowId"];
         put?: never;
         /** @description Create an entity for a workflow */
         post: operations["createEntity"];
@@ -117,14 +118,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workflows/{workflowId}/attributes": {
+    "/workflows/{workflowId}/attribute-descriptions": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["listAttributes"];
+        get: operations["listAttributeDescription"];
         put?: never;
         post: operations["createAttributeDescription"];
         delete?: never;
@@ -143,22 +144,6 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["createRule"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/workflow-entities/list": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["list"];
         delete?: never;
         options?: never;
         head?: never;
@@ -198,15 +183,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workflows/{workflowId}/workflow-entities/ids": {
+    "/workflows/{workflowId}/attributes": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description List all child entities of a workflow */
-        get: operations["listByWorkflowId"];
+        get: operations["listAttributes"];
         put?: never;
         post?: never;
         delete?: never;
@@ -231,7 +215,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workflow-states/{workflowStateId}/workflow-entities/ids": {
+    "/workflow-states/{workflowStateId}/workflow-entities": {
         parameters: {
             query?: never;
             header?: never;
@@ -324,12 +308,11 @@ export interface components {
             initialStateId?: number;
         };
         RequestNewAttribute: {
-            /** Format: int64 */
-            integer?: number;
+            integer?: string;
             /** Format: double */
             floating?: number;
             enumeration?: string;
-            decimal?: number;
+            decimal?: string;
             /** Format: date-time */
             date?: string;
             /** Format: date-time */
@@ -347,8 +330,7 @@ export interface components {
             creationTime: string;
             /** Format: date-time */
             updateTime: string;
-            /** Format: int64 */
-            integer?: number;
+            integer?: string;
             /** Format: double */
             floating?: number;
             enumeration?: string;
@@ -419,8 +401,6 @@ export interface components {
         };
         RequestNewAttributeDescription: {
             name: string;
-            /** Format: int32 */
-            parentWorkflowId: number;
             /** @enum {string} */
             refType: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
             /** @enum {string} */
@@ -467,21 +447,6 @@ export interface components {
             toId: number;
             /** @description The expressions that need to return true so the change may happen */
             expressions: string[];
-        };
-        RequestListWorkflowEntity: {
-            ids: number[];
-        };
-        ResponseAttributeWithDescription: {
-            attr?: components["schemas"]["ResponseAttribute"];
-            description: components["schemas"]["ResponseAttributeDescription"];
-        };
-        ResponseAttributeWithDescriptionList: {
-            items: components["schemas"]["ResponseAttributeWithDescription"][];
-        };
-        ResponseEntityIdsByState: {
-            ids: number[];
-            /** Format: date-time */
-            lastCurrentEntitiesChange: string;
         };
     };
     responses: never;
@@ -599,7 +564,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list: {
         parameters: {
             query?: never;
             header?: never;
@@ -691,6 +656,28 @@ export interface operations {
             };
         };
     };
+    listByWorkflowId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseWorkflowEntity"][];
+                };
+            };
+        };
+    };
     createEntity: {
         parameters: {
             query?: never;
@@ -717,7 +704,7 @@ export interface operations {
             };
         };
     };
-    listAttributes: {
+    listAttributeDescription: {
         parameters: {
             query?: never;
             header?: never;
@@ -734,7 +721,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ResponseAttributeWithDescriptionList"];
+                    "*/*": components["schemas"]["ResponseAttributeDescription"][];
                 };
             };
         };
@@ -789,30 +776,6 @@ export interface operations {
             };
         };
     };
-    list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RequestListWorkflowEntity"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResponseWorkflowEntity"][];
-                };
-            };
-        };
-    };
     moveState: {
         parameters: {
             query?: never;
@@ -856,7 +819,7 @@ export interface operations {
             };
         };
     };
-    listByWorkflowId: {
+    listAttributes: {
         parameters: {
             query?: never;
             header?: never;
@@ -873,7 +836,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": number[];
+                    "*/*": components["schemas"]["ResponseAttribute"][];
                 };
             };
         };
@@ -917,7 +880,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ResponseEntityIdsByState"];
+                    "*/*": components["schemas"]["ResponseWorkflowEntity"][];
                 };
             };
         };
@@ -939,7 +902,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ResponseAttributeWithDescriptionList"];
+                    "*/*": components["schemas"]["ResponseAttribute"][];
                 };
             };
         };
@@ -983,7 +946,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ResponseAttributeWithDescriptionList"];
+                    "*/*": components["schemas"]["ResponseAttribute"][];
                 };
             };
         };
