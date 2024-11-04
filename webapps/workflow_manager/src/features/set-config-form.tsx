@@ -110,6 +110,7 @@ const SetConfigFormInner = observer(
                             <SelectItem
                               key={state.id}
                               value={state.id.toString()}
+                              className="font-mono"
                             >
                               {state.name}
                             </SelectItem>

@@ -20,7 +20,10 @@ public class NewWorkflowAttributeDTO {
     if (request.integer != null) this.integer = new BigInteger(request.integer);
     this.floating = request.floating;
     this.enumeration = request.enumeration;
-    if (this.decimal != null) new BigDecimal(request.decimal);
+    if (request.decimal != null) {
+      System.out.print(request.decimal);
+      this.decimal = new BigDecimal(request.decimal);
+    }
     this.date = request.date;
     this.timestamp = request.timestamp;
     this.flag = request.flag;

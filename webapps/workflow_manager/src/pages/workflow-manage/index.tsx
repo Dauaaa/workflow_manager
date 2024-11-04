@@ -22,6 +22,14 @@ import { useEffect, useState, createContext, useContext } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { ChangeStateRulesForm } from "@/features/change-state-rules-form";
+import { StateChangeOptions } from "@/features/state-change-options";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+} from "@/components/ui/card";
 
 type SheetContext = Parameters<typeof AttributesForm>[0];
 
@@ -76,70 +84,119 @@ const WorkflowManagePage = observer(() => {
 
   return (
     <PageContext.Provider value={pageStore}>
-      <AttributeSheet />
-      <div className="w-4/5 mx-auto">
-        <StateCollapserList workflowId={workflowIdN} />
-        <NewStateForm workflowId={workflowIdN} />
-        <SetConfigForm workflowId={workflowIdN} />
-        <NewEntityForm workflowId={workflowIdN} />
+      <div className="flex flex-col gap-4">
+        <WorkflowTitle workflowId={workflowIdN} />
+        <div className="w-4/5 mx-auto">
+          <StateCollapserList workflowId={workflowIdN} />
+        </div>
       </div>
+      <AttributeSheet />
     </PageContext.Provider>
+  );
+});
+
+const WorkflowTitle = observer(({ workflowId }: { workflowId: number }) => {
+  const workflowStore = useWorkflowStore();
+  const pageStore = useContext(PageContext);
+
+  const workflow = workflowStore.workflows.get(workflowId);
+
+  return (
+    <div className="h-20 border-b flex justify-between px-32">
+      <h1 className="font-extrabold text-5xl font-mono my-auto">
+        {workflow?.name}
+      </h1>
+      <div className="my-auto">
+        <Button
+          variant="outline"
+          disabled={!workflow}
+          onClick={() => {
+            if (workflow) pageStore.setSheetContextWorkflow(workflow);
+          }}
+        >
+          <GearIcon />
+        </Button>
+      </div>
+    </div>
   );
 });
 
 const StateCollapserList = observer(
   ({ workflowId }: { workflowId: number }) => {
     const workflowStore = useWorkflowStore();
+    const workflow = workflowStore.workflows.get(workflowId);
 
     return (
       <div className="flex flex-col gap-4 mb-4">
         {[...workflowStore.workflowStates.values()]
           .filter((state) => state.workflowId === workflowId)
+          .sort((a, b) => a.id - b.id)
           .map((state) => (
-            <StateCollapser state={state} key={state.id} />
+            <StateCollapser
+              state={state}
+              key={state.id}
+              isStarting={workflow?.initialStateId === state.id}
+            />
           ))}
       </div>
     );
   },
 );
 
-const StateCollapser = ({ state }: { state: WorkflowState }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const StateCollapser = observer(
+  ({ state, isStarting }: { state: WorkflowState; isStarting?: boolean }) => {
+    const [isOpen, setIsOpen] = useState(false);
 
-  const pageStore = useContext(PageContext);
+    const workflowStore = useWorkflowStore();
+    const pageStore = useContext(PageContext);
+    const drawerContext = pageStore.drawerContext.current;
 
-  return (
-    <Collapsible onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <div
-          className={cn(
-            "flex justify-between w-full rounded-md px-4 py-2 hover:bg-accent",
-            {
-              "rounded-xl border": !isOpen,
-              "rounded-t-xl border-l border-r border-t": isOpen,
-            },
-          )}
-        >
-          <h2 className="text-xl font-bold font-mono">{state.name}</h2>
-          <div className="flex justify-end">
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                pageStore.setSheetContextState(state);
-              }}
-              variant="outline"
-            >
-              <GearIcon className="my-auto" />
-            </Button>
+    console.log(state.name, "rerender");
+
+    if (drawerContext && drawerContext.refType === "WORKFLOW_ENTITY") {
+      const entity = workflowStore.workflowEntities.get(
+        drawerContext.baseEntityId,
+      );
+
+      if (entity?.currentStateId === state.id && !isOpen) setIsOpen(true);
+    }
+
+    return (
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <div
+            className={cn(
+              "flex justify-between w-full rounded-md px-4 py-2 hover:bg-accent",
+              {
+                "rounded-xl border": !isOpen,
+                "rounded-t-xl border-l border-r border-t": isOpen,
+              },
+            )}
+          >
+            <h2 className="text-xl font-bold font-mono">{state.name}</h2>
+            <div className="flex justify-end gap-4">
+              {isStarting ? (
+                <NewEntityForm workflowId={state.workflowId} />
+              ) : null}
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  pageStore.setSheetContextState(state);
+                }}
+                variant="outline"
+              >
+                <GearIcon className="my-auto" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <EntityList stateId={state.id} />
-      </CollapsibleContent>
-    </Collapsible>
-  );
-};
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <EntityList stateId={state.id} />
+        </CollapsibleContent>
+      </Collapsible>
+    );
+  },
+);
 
 const EntityList = observer(({ stateId }: { stateId: number }) => {
   const workflowStore = useWorkflowStore();
@@ -165,7 +222,7 @@ const EntityList = observer(({ stateId }: { stateId: number }) => {
       {entities.length === 0 ? (
         <div className="h-36 w-full flex justify-center">
           <div className="flex flex-col my-auto gap-2">
-            <CubeIcon className="h-20 w-20" />
+            <CubeIcon className="h-20 w-20 mx-auto" />
             <p className="text-center font-mono">No entities</p>
           </div>
         </div>
@@ -212,14 +269,50 @@ const AttributeSheet = observer(() => {
         if (!open) pageStore.setSheetContext(undefined);
       }}
     >
-      <SheetContent className="sm:max-w-none max-w-3/5 w-[80vw]">
+      <SheetContent className="sm:max-w-none w-[900px] font-mono overflow-y-auto">
         {ctx ? (
           <>
             <h2 className="text-xl font-bold">
-              Attributes for {WorkflowAttributeReferenceTypePretty[ctx.refType]}
-              : {currentEntityName}
+              {WorkflowAttributeReferenceTypePretty[ctx.refType]}:{" "}
+              {currentEntityName}
             </h2>
-            <AttributesForm {...ctx} />
+            <div className="flex justify-between h-full">
+              <AttributesForm {...ctx} />
+              {ctx.refType === "WORKFLOW_STATE" ? (
+                <ChangeStateRulesForm
+                  stateId={ctx.baseEntityId}
+                  workflowId={ctx.workflowId}
+                />
+              ) : null}
+              {ctx.refType === "WORKFLOW_ENTITY" ? (
+                <StateChangeOptions
+                  entityId={ctx.baseEntityId}
+                  workflowId={ctx.workflowId}
+                />
+              ) : null}
+              {ctx.refType === "WORKFLOW" ? (
+                <div className="flex flex-col">
+                  <Card className="p-4">
+                    <CardTitle>Add state</CardTitle>
+                    <CardDescription>
+                      Add a new state to the workflow
+                    </CardDescription>
+                    <CardContent className="mt-4">
+                      <NewStateForm workflowId={ctx.baseEntityId} />
+                    </CardContent>
+                  </Card>
+                  <Card className="p-4">
+                    <CardTitle>Configure workflow</CardTitle>
+                    <CardDescription>
+                      Change the configuration of the workflow
+                    </CardDescription>
+                    <CardContent className="mt-4">
+                      <SetConfigForm workflowId={ctx.baseEntityId} />
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : null}
+            </div>
           </>
         ) : null}
       </SheetContent>

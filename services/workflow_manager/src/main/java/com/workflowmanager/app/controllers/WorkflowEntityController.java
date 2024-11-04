@@ -154,7 +154,7 @@ public class WorkflowEntityController {
   @Operation(description = "Try moving an entity to a new state")
   @PatchMapping("workflow-entities/{entityId}/workflow-states/{newStateId}")
   @ResponseBody
-  public void moveState(
+  public ResponseWorkflowEntity moveState(
       @PathVariable("entityId") Integer entityId, @PathVariable("newStateId") Integer newStateId) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
 
@@ -175,6 +175,8 @@ public class WorkflowEntityController {
     this.workflowStateRepository.save(curState);
     this.workflowStateRepository.save(nextState);
     this.workflowEntityRepository.save(entity);
+
+    return this.getEntity(entity.getId());
   }
 
   @GetMapping("workflow-entities/{entityId}/attributes")

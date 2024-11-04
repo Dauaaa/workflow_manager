@@ -97,7 +97,7 @@ public class WorkflowStateController {
 
   @PostMapping("workflow-states/{workflowStateId}/rules")
   @ResponseBody
-  public void createRule(
+  public ResponseWorkflowState createRule(
       @PathVariable("workflowStateId") Integer workflowStateId,
       @RequestBody RequestSetChangeStateRule request) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
@@ -123,6 +123,8 @@ public class WorkflowStateController {
     ChangeStateRules rules = new ChangeStateRules(from, to, dto);
 
     this.changeStateRulesRepository.save(rules);
+
+    return this.getState(from.getId());
   }
 
   @PutMapping("workflow-states/{stateId}/attributes/{attributeName}")

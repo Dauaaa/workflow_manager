@@ -254,7 +254,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getWorkflow_1"];
+        get: operations["getEntity"];
         put?: never;
         post?: never;
         delete?: never;
@@ -772,7 +772,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": components["schemas"]["ResponseWorkflowState"];
+                };
             };
         };
     };
@@ -793,7 +795,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": components["schemas"]["ResponseWorkflowEntity"];
+                };
             };
         };
     };
@@ -907,7 +911,7 @@ export interface operations {
             };
         };
     };
-    getWorkflow_1: {
+    getEntity: {
         parameters: {
             query?: never;
             header?: never;

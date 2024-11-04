@@ -35,9 +35,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { UpdateIcon } from "@radix-ui/react-icons";
 import Decimal from "decimal.js";
 import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { ControllerRenderProps, useForm, UseFormReturn } from "react-hook-form";
 import { z } from "zod";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { PopoverClose } from "@radix-ui/react-popover";
+import { FormSubmitter } from "@/components/form-submitter";
 
 export const AttributesForm = observer(
   ({
@@ -67,11 +74,18 @@ export const AttributesForm = observer(
     ];
 
     return (
-      <div className="flex flex-col gap-8">
-        <NewAttributeDescriptionForm
-          refType={refType}
-          workflowId={workflowId}
-        />
+      <div className="flex flex-col gap-8 font-mono">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button>Add attribute</Button>
+          </PopoverTrigger>
+          <PopoverContent onClick={(e) => e.stopPropagation()}>
+            <NewAttributeDescriptionForm
+              refType={refType}
+              workflowId={workflowId}
+            />
+          </PopoverContent>
+        </Popover>
         {descriptions.map((desc) => (
           <SetAttributeForm
             baseEntityId={baseEntityId}
@@ -111,18 +125,24 @@ const NewAttributeDescriptionForm = ({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit((description) =>
+        onSubmit={form.handleSubmit((description) => {
           workflowStore.createAttributeDescription({
             workflowId,
             ...description,
-          }),
-        )}
+          });
+        })}
         className="space-y-8"
       >
         <NameField form={form} />
         <RefTypeField form={form} />
         <AttrType form={form} />
-        <Button type="submit">Submit</Button>
+        <FormSubmitter
+          schema={NewAttributeDescriptionFormSchema}
+          form={form as any}
+          closeContext="popover"
+        >
+          Submit
+        </FormSubmitter>
       </form>
     </Form>
   );
@@ -156,14 +176,14 @@ const RefTypeField = ({ form }: CommonAttributeDescriptionFieldProps) => (
       <FormItem>
         <FormLabel>Entity type</FormLabel>
         <FormControl>
-          <Select {...field}>
+          <Select {...field} open={false}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 {WORKFLOW_ATTRIBUTE_REFERENCE_TYPES.map((ty) => (
-                  <SelectItem key={ty} value={ty}>
+                  <SelectItem key={ty} value={ty} className="font-mono">
                     {WorkflowAttributeReferenceTypePretty[ty]}
                   </SelectItem>
                 ))}
@@ -193,7 +213,7 @@ const AttrType = ({ form }: CommonAttributeDescriptionFieldProps) => (
               <SelectGroup>
                 <SelectLabel>Attribute types</SelectLabel>
                 {WORKFLOW_ATTRIBUTE_TYPES.map((ty) => (
-                  <SelectItem key={ty} value={ty}>
+                  <SelectItem key={ty} value={ty} className="font-mono">
                     {WorkflowAttributeTypePretty[ty]}
                   </SelectItem>
                 ))}
@@ -398,32 +418,44 @@ const FlagField = ({
   );
 };
 
-const textFieldValueFormat = (
+const textInputToFieldValue = (
   attrType: WorkflowAttributeType,
   value?: string,
 ) => {
+  let ret;
   switch (attrType) {
     case "TEXT":
-      return value;
+      ret = { value };
+      break;
     case "INTEGER":
-      return !value ? undefined : BigInt(value.replace(/\D/g, ""));
+      ret = { value: !value ? undefined : BigInt(value.replace(/\D/g, "")) };
+      break;
     case "DECIMAL":
     case "FLOATING": {
       if (value) {
-        const parts = value.replace(/[\D.]/g, "").split(".");
-        let valueAsString;
-        if (parts.length === 1) valueAsString = parts[0];
-        else
-          valueAsString =
-            parts.slice(0, -2).join("") + "." + parts[parts.length - 1];
-        if (attrType === "FLOATING") return Number(valueAsString);
-        else return new Decimal(valueAsString);
+        const valueNormalized = value.replace(/[^\d.]/g, "");
+
+        try {
+          if (attrType === "FLOATING") {
+            const v = Number(valueNormalized);
+            if (Number.isNaN(v)) throw "";
+            ret = { value: v };
+          } else ret = { value: new Decimal(valueNormalized) };
+        } catch {
+          ret = { error: true };
+        }
       }
-      return undefined;
     }
   }
 
-  return undefined;
+  return ret;
+};
+
+type TextInputType = number | string | undefined | bigint | Decimal;
+
+const valuesEq = (a: TextInputType, b: TextInputType) => {
+  if (a instanceof Decimal && b instanceof Decimal) return a.eq(b);
+  return a === b;
 };
 
 const TextField = observer(
@@ -439,15 +471,25 @@ const TextField = observer(
     >;
   }) => {
     const workflowStore = useWorkflowStore();
+    const [strValue, setStrValue] = useState(field.value?.toString() ?? "");
+
+    useLayoutEffect(() => {
+      setStrValue(field.value?.toString() ?? "");
+    }, [field.value, setStrValue]);
 
     const attr = workflowStore.entityAttributes
       .get(baseEntityId)
       ?.get(description.name);
+
+    console.log(attr, field.value);
+
     const disabled =
-      attr?.[WorkflowAttributeTypePretty[description.attrType]] === field.value;
+      attr?.[WorkflowAttributeTypePretty[description.attrType]] ===
+        field.value ||
+      !!textInputToFieldValue(description.attrType, strValue)?.error;
 
     const submit = () => {
-      form.handleSubmit((attr) => {
+      void form.handleSubmit((attr) => {
         void workflowStore.setAttribute({
           attr: attr as any,
           refType: description.refType,
@@ -461,13 +503,17 @@ const TextField = observer(
       <div className="flex gap-4">
         <Input
           className="w-64"
-          {...field}
-          value={field.value?.toString() ?? ""}
-          onChange={(v) =>
-            field.onChange(
-              textFieldValueFormat(description.attrType, v.target.value),
-            )
-          }
+          value={strValue}
+          onChange={(e) => {
+            setStrValue(e.target.value);
+            const newValue = textInputToFieldValue(
+              description.attrType,
+              e.target.value,
+            );
+            if (!newValue?.error && !valuesEq(newValue?.value, field.value)) {
+              field.onChange(newValue?.value);
+            }
+          }}
         />
         <Button
           onClick={(e) => {
@@ -515,7 +561,7 @@ const EnumField = ({
       <SelectContent>
         <SelectGroup>
           {(description.enumDescription ?? []).map((ty) => (
-            <SelectItem key={ty} value={ty}>
+            <SelectItem key={ty} value={ty} className="font-mono">
               {ty}
             </SelectItem>
           ))}

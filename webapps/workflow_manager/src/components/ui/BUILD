@@ -17,6 +17,7 @@ vite_ts_project(
         "//webapps/workflow_manager:node_modules/@radix-ui/react-icons",
         "//webapps/workflow_manager:node_modules/@radix-ui/react-dialog",
         "//webapps/workflow_manager:node_modules/@radix-ui/react-switch",
+        "//webapps/workflow_manager:node_modules/@radix-ui/react-separator",
         "//webapps/workflow_manager:node_modules/class-variance-authority",
         "//webapps/workflow_manager:node_modules/react-hook-form",
         "//webapps/workflow_manager:node_modules/vaul",

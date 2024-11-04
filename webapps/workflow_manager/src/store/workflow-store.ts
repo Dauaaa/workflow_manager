@@ -170,6 +170,22 @@ export class WorkflowStore {
     this.upsertWorkflows([workflow]);
   };
 
+  public setChangeRule = async (
+    ...args: Parameters<WorkflowManagerService["setChangeRule"]>
+  ) => {
+    const state = await this.workflowManagerService.setChangeRule(...args);
+
+    this.upsertStates([state]);
+  };
+
+  public moveState = async (
+    ...args: Parameters<WorkflowManagerService["moveState"]>
+  ) => {
+    const entity = await this.workflowManagerService.moveState(...args);
+
+    this.upsertEntities([entity]);
+  };
+
   public loadAttributeDescriptions = async (workflowId: number) => {
     const descriptions =
       await this.workflowManagerService.getAttributesDescription(workflowId);
@@ -253,6 +269,11 @@ export class WorkflowStore {
       const curEntity = this.workflowEntities.get(entity.id);
       if (!curEntity || curEntity.updateTime.isBefore(entity.updateTime)) {
         this.workflowEntities.set(entity.id, entity);
+
+        if (curEntity && curEntity.currentStateId !== entity.currentStateId)
+          this.workflowEntitiesByState
+            .get(curEntity.currentStateId)
+            ?.delete(entity.id);
 
         const entitiesByState = this.workflowEntitiesByState.get(
           entity.currentStateId,
@@ -449,6 +470,7 @@ class WorkflowManagerService {
     attributeName: string;
   }) => {
     let response;
+    console.log({ attr });
     switch (refType) {
       case "WORKFLOW": {
         response = await this.client.PUT(
@@ -512,6 +534,46 @@ class WorkflowManagerService {
     });
 
     return parsers.WorkflowSchema.parse(response.data);
+  };
+
+  public setChangeRule = async ({
+    workflowStateId,
+    rule,
+  }: {
+    workflowStateId: number;
+    rule: RequestSetChangeStateRule;
+  }) => {
+    const response = await this.client.POST(
+      "/workflow-states/{workflowStateId}/rules",
+      {
+        body: rule,
+        params: {
+          path: { workflowStateId },
+        },
+      },
+    );
+
+    // TODO: response error handling
+
+    // TODO: parser error handling
+    return parsers.WorkflowStateSchema.parse(response?.data);
+  };
+
+  public moveState = async ({
+    entityId,
+    newStateId,
+  }: {
+    entityId: number;
+    newStateId: number;
+  }) => {
+    const response = await this.client.PATCH(
+      "/workflow-entities/{entityId}/workflow-states/{newStateId}",
+      {
+        params: { path: { entityId, newStateId } },
+      },
+    );
+
+    return parsers.WorkflowEntitySchema.parse(response?.data);
   };
 
   public listWorkflows = async () => {
@@ -686,6 +748,7 @@ export type WorkflowAttribute = z.infer<typeof parsers.WorkflowAttributeSchema>;
 export type WorkflowAttributeDescription = z.infer<
   typeof parsers.WorkflowAttributeDescriptionSchema
 >;
+export type ChangeStateRule = z.infer<typeof parsers.ChangeStateRulesSchema>;
 export type EntityIdsByState = z.infer<
   typeof parsers.ResponseEntityIdsByStateSchema
 >;
@@ -700,6 +763,9 @@ export type RequestNewWorkflowEntity = z.input<
 >;
 export type RequestUpdateWorkflowConfig = z.input<
   typeof parsers.RequestUpdateWorkflowConfigSchema
+>;
+export type RequestSetChangeStateRule = z.input<
+  typeof parsers.RequestSetChangeStateRuleSchema
 >;
 
 export const WORKFLOW_ATTRIBUTE_REFERENCE_TYPES = [
@@ -787,6 +853,11 @@ export module parsers {
     timestamp: DayjsSchema.nullish().transform(standardUndefined),
     flag: z.boolean().nullish().transform(standardUndefined),
     text: z.string().nullish().transform(standardUndefined),
+  });
+
+  export const RequestSetChangeStateRuleSchema = z.object({
+    toId: z.number(),
+    expressions: z.string().array().min(1),
   });
 
   export const ChangeStateRulesSchema = z.object({

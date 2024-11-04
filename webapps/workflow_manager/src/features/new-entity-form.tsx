@@ -12,6 +12,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useWorkflowStore } from "@/store/context";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { PopoverClose } from "@radix-ui/react-popover";
+import { FormSubmitter } from "@/components/form-submitter";
 
 const FormSchema = z.object({
   name: z
@@ -43,28 +50,51 @@ export const NewEntityForm = ({
   const workflowStore = useWorkflowStore();
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit((newEntity) =>
-          workflowStore.createEntity(newEntity, workflowId),
-        )}
-        className="space-y-8"
-      >
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Entity name</FormLabel>
-              <FormControl>
-                <Input placeholder="my-entity" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {buttonOverride ?? <Button type="submit">Submit</Button>}
-      </form>
-    </Form>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          onClick={(e) => e.stopPropagation()}
+          className="font-mono"
+          variant="outline"
+        >
+          Add entity
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent onClick={(e) => e.stopPropagation()}>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(async (newEntity) => {
+              workflowStore.createEntity(newEntity, workflowId);
+              form.reset();
+            })}
+            className="space-y-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Entity name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="my-entity" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {buttonOverride ?? (
+              <FormSubmitter
+                schema={FormSchema}
+                form={form as any}
+                closeContext="popover"
+              >
+                Submit
+              </FormSubmitter>
+            )}
+          </form>
+        </Form>
+      </PopoverContent>
+    </Popover>
   );
 };

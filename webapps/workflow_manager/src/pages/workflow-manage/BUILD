@@ -19,6 +19,8 @@ vite_ts_project(
         "//webapps/workflow_manager/src/features:new-entity-form",
         "//webapps/workflow_manager/src/features:set-config-form",
         "//webapps/workflow_manager/src/features:attributes-form",
+        "//webapps/workflow_manager/src/features:state-change-options",
+        "//webapps/workflow_manager/src/features:change-state-rules-form",
         "//webapps/workflow_manager/src/components/ui",
         "//webapps/workflow_manager/src/lib:utils",
         "//webapps/workflow_manager/src/store:workflow-store",
