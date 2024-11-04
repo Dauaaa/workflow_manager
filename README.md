@@ -28,19 +28,18 @@ Showcase some of my current developer skills and knowledge.
         - tailwind
         - shadcn
 
-## Products
-- [ ] workflowmanager (server)
-- [ ] workflowmanager (client)
-- [ ] landing page
-- [ ] sse server
-- [ ] auth server
-
-## Product Features
-- [ ] landing page with tracking (for tuning, conversion rate etc.)
-- [ ] kanban (with live updates)
-- [ ] user account management
-- [ ] cost tracking per client
-- [ ] auth
+## TODO
+- [ ] configure attribute description
+    - [ ] frontend
+    - [ ] backend
+- [ ] configure change rules
+    - [ ] frontend
+    - [x] backend
+- [ ] websocket integration
+    - [ ] frontend
+    - [ ] backend
+- [ ] subscribe, unsubscribe and caching for the store
+- [ ] configure 
 
 ## DX features
 - [x] java app
