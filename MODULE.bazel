@@ -24,6 +24,8 @@ maven.install(
         "org.springframework.boot:spring-boot-starter-web:3.3.4",
         "org.springframework.boot:spring-boot-starter-data-jpa:3.3.4",
         "org.springframework.boot:spring-boot-starter-validation:3.3.4",
+        "org.springframework.boot:spring-boot-starter-websocket:3.3.4",
+        "org.springframework.boot:spring-boot-starter-amqp:3.3.4",
         "org.zalando:problem-spring-web-starter:0.29.1",
         "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0",
         "jakarta.persistence:jakarta.persistence-api:3.1.0",
@@ -35,6 +37,7 @@ maven.install(
         "org.postgresql:postgresql:42.7.4",
         "dev.cel:cel:0.8.0",
         "io.hypersistence:hypersistence-utils-hibernate-60:3.8.3",
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.1",
     ],
     fetch_sources = True,
     repositories = [

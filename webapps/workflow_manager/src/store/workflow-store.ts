@@ -181,9 +181,10 @@ export class WorkflowStore {
   public moveState = async (
     ...args: Parameters<WorkflowManagerService["moveState"]>
   ) => {
-    const entity = await this.workflowManagerService.moveState(...args);
+    const res = await this.workflowManagerService.moveState(...args);
 
-    this.upsertEntities([entity]);
+    this.upsertEntities([res.entity]);
+    this.upsertStates([res.from, res.to]);
   };
 
   public loadAttributeDescriptions = async (workflowId: number) => {
@@ -573,7 +574,7 @@ class WorkflowManagerService {
       },
     );
 
-    return parsers.WorkflowEntitySchema.parse(response?.data);
+    return parsers.ResponseEntityChangeStateSchema.parse(response?.data);
   };
 
   public listWorkflows = async () => {
@@ -885,6 +886,12 @@ export module parsers {
   export const RequestBaseEntitySchema = z.object({
     name: z.string(),
   });
+
+  export const ResponseEntityChangeStateSchema = z.object({
+      entity: WorkflowEntitySchema,
+      from: WorkflowStateSchema,
+      to: WorkflowStateSchema,
+  })
 
   export const RequestNewWorkflowSchema = RequestBaseEntitySchema;
 

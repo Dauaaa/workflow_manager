@@ -1,5 +1,6 @@
 package com.workflowmanager.app.controllers;
 
+import com.workflowmanager.app.Publisher;
 import com.workflowmanager.app.controllers.requests.RequestNewAttribute;
 import com.workflowmanager.app.controllers.requests.RequestNewAttributeDescription;
 import com.workflowmanager.app.controllers.requests.RequestNewWorkflow;
@@ -41,16 +42,19 @@ public class WorkflowController {
   private final WorkflowStateRepository workflowStateRepository;
   private final WorkflowAttributeDescriptionRepository attributeDescriptionRepository;
   private final WorkflowAttributeRepository workflowAttributeRepository;
+  private final Publisher publisher;
 
   public WorkflowController(
       WorkflowRepository workflowRepository,
       WorkflowStateRepository workflowStateRepository,
       WorkflowAttributeDescriptionRepository attributeDescriptionRepository,
-      WorkflowAttributeRepository workflowAttributeRepository) {
+      WorkflowAttributeRepository workflowAttributeRepository,
+      Publisher publisher) {
     this.workflowRepository = workflowRepository;
     this.workflowStateRepository = workflowStateRepository;
     this.attributeDescriptionRepository = attributeDescriptionRepository;
     this.workflowAttributeRepository = workflowAttributeRepository;
+    this.publisher = publisher;
   }
 
   @GetMapping("workflows/{workflowId}")
@@ -82,8 +86,15 @@ public class WorkflowController {
     Workflow workflow = new Workflow(dto);
     this.workflowRepository.save(workflow);
 
-    return new ResponseWorkflow(
-        this.workflowRepository.getByIdAndClientId(workflow.getId(), auth.clientId).orElseThrow());
+    ResponseWorkflow ret = this.getWorkflow(workflow.getId());
+
+    Publisher.MessageBatch batch = this.publisher.batch();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+
+    this.publisher.publish(batch);
+
+    return ret;
   }
 
   @PutMapping("workflows/{workflowId}/config")
@@ -114,7 +125,15 @@ public class WorkflowController {
 
     this.workflowRepository.save(workflow);
 
-    return this.getWorkflow(workflow.getId());
+    ResponseWorkflow ret = this.getWorkflow(workflow.getId());
+
+    Publisher.MessageBatch batch = this.publisher.batch();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+
+    this.publisher.publish(batch);
+
+    return ret;
   }
 
   @PostMapping("workflows/{workflowId}/attribute-descriptions")
@@ -140,10 +159,19 @@ public class WorkflowController {
 
     this.attributeDescriptionRepository.save(attributeDescription);
 
-    return new ResponseAttributeDescription(
-        this.attributeDescriptionRepository
-            .getByNameParentWorkflowId(attributeDescription.getName(), workflow.getId())
-            .orElseThrow());
+    ResponseAttributeDescription ret =
+        new ResponseAttributeDescription(
+            this.attributeDescriptionRepository
+                .getByNameParentWorkflowId(attributeDescription.getName(), workflow.getId())
+                .orElseThrow());
+
+    Publisher.MessageBatch batch = this.publisher.batch();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+
+    this.publisher.publish(batch);
+
+    return ret;
   }
 
   @GetMapping("workflows/{workflowId}/attribute-descriptions")
@@ -190,13 +218,22 @@ public class WorkflowController {
 
     this.workflowAttributeRepository.save(attribute);
 
-    return new ResponseAttribute(
-        this.workflowAttributeRepository
-            .getByBaseEntityAndDescriptionName(
-                workflow.getId(),
-                attributeDescription.getName(),
-                WorkflowAttributeReferenceType.WORKFLOW)
-            .orElseThrow());
+    ResponseAttribute ret =
+        new ResponseAttribute(
+            this.workflowAttributeRepository
+                .getByBaseEntityAndDescriptionName(
+                    workflow.getId(),
+                    attributeDescription.getName(),
+                    WorkflowAttributeReferenceType.WORKFLOW)
+                .orElseThrow());
+
+    Publisher.MessageBatch batch = this.publisher.batch();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+
+    this.publisher.publish(batch);
+
+    return ret;
   }
 
   @GetMapping("workflows/{workflowId}/attributes")

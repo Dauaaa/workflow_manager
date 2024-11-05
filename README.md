@@ -32,14 +32,27 @@ Showcase some of my current developer skills and knowledge.
 - [ ] configure attribute description
     - [ ] frontend
     - [ ] backend
-- [ ] configure change rules
+- [x] configure change rules
     - [x] frontend
     - [x] backend
 - [ ] websocket integration
     - [ ] frontend
     - [ ] backend
-- [ ] subscribe, unsubscribe and caching for the store
-- [ ] configure 
+- [ ] rabbitmq
+    - [x] publisher (workflowmanager)
+    - [ ] consumer (websocket service)
+- [ ] redis message queue
+- [ ] simple authorization
+- [ ] websocket and caching for the store
+- [ ] CEL
+    - [ ] frontend
+    - [ ] backend
+- [ ] ui feedback
+    - [ ] loading on submit
+    - [ ] loading on fetch
+    - [ ] background signal on change
+    - [ ] error toast
+    - [ ] schema error messages
 
 ## DX features
 - [x] java app

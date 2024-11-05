@@ -1,5 +1,6 @@
 package com.workflowmanager.app.controllers;
 
+import com.workflowmanager.app.Publisher;
 import com.workflowmanager.app.controllers.requests.RequestNewAttribute;
 import com.workflowmanager.app.controllers.requests.RequestNewWorkflowState;
 import com.workflowmanager.app.controllers.requests.RequestSetChangeStateRule;
@@ -40,18 +41,21 @@ public class WorkflowStateController {
   private final ChangeStateRulesRepository changeStateRulesRepository;
   private final WorkflowAttributeDescriptionRepository attributeDescriptionRepository;
   private final WorkflowAttributeRepository workflowAttributeRepository;
+  private final Publisher publisher;
 
   public WorkflowStateController(
       WorkflowStateRepository workflowStateRepository,
       WorkflowRepository workflowRepository,
       ChangeStateRulesRepository changeStateRulesRepository,
       WorkflowAttributeDescriptionRepository attributeDescriptionRepository,
-      WorkflowAttributeRepository workflowAttributeRepository) {
+      WorkflowAttributeRepository workflowAttributeRepository,
+      Publisher publisher) {
     this.workflowStateRepository = workflowStateRepository;
     this.workflowRepository = workflowRepository;
     this.changeStateRulesRepository = changeStateRulesRepository;
     this.attributeDescriptionRepository = attributeDescriptionRepository;
     this.workflowAttributeRepository = workflowAttributeRepository;
+    this.publisher = publisher;
   }
 
   @GetMapping("workflows/{workflowId}/workflow-states")
@@ -92,7 +96,15 @@ public class WorkflowStateController {
     WorkflowState workflowState = new WorkflowState(dto, workflow);
     this.workflowStateRepository.save(workflowState);
 
-    return this.getState(workflowState.getId());
+    ResponseWorkflowState ret = this.getState(workflowState.getId());
+
+    Publisher.MessageBatch batch = this.publisher.batch();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+
+    this.publisher.publish(batch);
+
+    return ret;
   }
 
   @PostMapping("workflow-states/{workflowStateId}/rules")
@@ -124,7 +136,15 @@ public class WorkflowStateController {
 
     this.changeStateRulesRepository.save(rules);
 
-    return this.getState(from.getId());
+    ResponseWorkflowState ret = this.getState(from.getId());
+
+    Publisher.MessageBatch batch = this.publisher.batch();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+
+    this.publisher.publish(batch);
+
+    return ret;
   }
 
   @PutMapping("workflow-states/{stateId}/attributes/{attributeName}")
@@ -160,13 +180,22 @@ public class WorkflowStateController {
 
     this.workflowAttributeRepository.save(attribute);
 
-    return new ResponseAttribute(
-        this.workflowAttributeRepository
-            .getByBaseEntityAndDescriptionName(
-                state.getId(),
-                attributeDescription.getName(),
-                WorkflowAttributeReferenceType.WORKFLOW_STATE)
-            .orElseThrow());
+    ResponseAttribute ret =
+        new ResponseAttribute(
+            this.workflowAttributeRepository
+                .getByBaseEntityAndDescriptionName(
+                    state.getId(),
+                    attributeDescription.getName(),
+                    WorkflowAttributeReferenceType.WORKFLOW_STATE)
+                .orElseThrow());
+
+    Publisher.MessageBatch batch = this.publisher.batch();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+
+    this.publisher.publish(batch);
+
+    return ret;
   }
 
   @GetMapping("workflow-states/{stateId}/attributes")

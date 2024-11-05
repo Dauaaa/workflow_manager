@@ -100,6 +100,7 @@ const EditChangeRuleList = observer(
         <CardContent className="flex flex-col gap-4 mt-4">
           {[...states.values()]
             .filter((state) => statesWithRule.has(state.id))
+            .sort((a, b) => a.id - b.id)
             .map((state) => (
               <div
                 key={state.id}
@@ -198,7 +199,7 @@ const StatePickField = observer(
                 onValueChange={(v) => field.onChange(Number(v))}
                 value={
                   !field.value && field.value !== 0
-                    ? undefined
+                    ? ""
                     : field.value.toString()
                 }
               >
@@ -206,7 +207,7 @@ const StatePickField = observer(
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Pick a state" />
                   </SelectTrigger>
-                  <Button className="absolute right-0" variant="destructive">
+                  <Button onClick={() => field.onChange(undefined)} className="absolute right-0" variant="destructive">
                     X
                   </Button>
                 </div>
@@ -215,6 +216,7 @@ const StatePickField = observer(
                     <SelectLabel>States</SelectLabel>
                     {[...states.values()]
                       .filter((state) => state.id !== curState.id)
+                      .sort((a, b) => a.id - b.id)
                       .map((state) => (
                         <SelectItem key={state.id} value={state.id.toString()}>
                           {state.name}

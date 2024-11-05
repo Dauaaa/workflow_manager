@@ -67,6 +67,10 @@ public class ErrorUtils {
     }
   }
 
+  public static ResponseStatusException just500(String message) {
+    return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, message);
+  }
+
   public static <T> void serverAssertEq(T lfs, T rhs) throws ResponseStatusException {
     if (lfs == null && rhs == null) {
       return;

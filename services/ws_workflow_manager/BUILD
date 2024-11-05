@@ -1,9 +1,8 @@
 load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
-load("//:build-tools/rules/java/open_api.bzl", "java_open_api_gen")
 
 java_library(
-    name = "workflow_manager_lib",
-    srcs = glob(["src/main/java/com/workflowmanager/**/*.java"]),
+    name = "ws_workflow_manager_lib",
+    srcs = glob(["src/main/java/com/wsworkflowmanager/**/*.java"]),
     javacopts = [
         "-source",
         "21",
@@ -18,7 +17,8 @@ java_library(
         "@maven//:org_springframework_boot_spring_boot_starter_data_jpa",
         "@maven//:org_springframework_boot_spring_boot_starter_web",
         "@maven//:org_springframework_boot_spring_boot_starter_validation",
-        "@maven//:org_springframework_boot_spring_boot_starter_amqp",
+        "@maven//:org_springframework_boot_spring_boot_starter_websocket",
+        "@maven//:org_springframework_spring_messaging",
         "@maven//:org_springframework_spring_web",
         "@maven//:org_zalando_problem_spring_web_starter",
         "@maven//:jakarta_validation_jakarta_validation_api",
@@ -42,42 +42,13 @@ java_library(
         "@maven//:io_hypersistence_hypersistence_utils_hibernate_60",
         "@maven//:org_hibernate_orm_hibernate_core",
         "@maven//:jakarta_annotation_jakarta_annotation_api",
-        "@maven//:org_springframework_amqp_spring_amqp",
-        "@maven//:org_springframework_amqp_spring_rabbit",
-        "@maven//:com_fasterxml_jackson_core_jackson_core",
-        "@maven//:com_fasterxml_jackson_core_jackson_databind",
-        "@maven//:com_fasterxml_jackson_datatype_jackson_datatype_jsr310",
+        "@maven//:org_springframework_spring_websocket",
     ],
 )
 
 java_binary(
-    name = "workflow_manager",
-    main_class = "com.workflowmanager.app.App",
-    resources = [":src/main/resources/application.properties"],
-    runtime_deps = [":workflow_manager_lib"],
+    name = "ws_workflow_manager",
+    main_class = "com.wsworkflowmanager.app.App",
+    # resources = [":src/main/resources/application.properties"],
+    runtime_deps = [":ws_workflow_manager_lib"],
 )
-
-java_binary(
-    name = "workflow_manager_open_api_bin",
-    main_class = "com.workflowmanager.app.App",
-    resources = [":src/main/resources/application-openapi-gen.properties"],
-    runtime_deps = [":workflow_manager_lib"],
-)
-
-java_open_api_gen(
-    name = "workflow_manager_open_api",
-    java_bin = ":workflow_manager_open_api_bin",
-    visibility = ["//visibility:public"],
-)
-
-# example test
-# java_test(
-#     name = "tests",
-#     srcs = glob(["src/test/java/com/example/myproject/*.java"]),
-#     test_class = "com.example.myproject.TestApp",
-#     deps = [
-#         ":java-maven-lib",
-#         "@maven//:com_google_guava_guava",
-#         "@maven//:junit_junit",
-#     ],
-# )

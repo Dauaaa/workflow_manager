@@ -1,9 +1,12 @@
 package com.workflowmanager.app.controllers;
 
+import com.workflowmanager.app.Publisher;
 import com.workflowmanager.app.controllers.requests.RequestNewAttribute;
 import com.workflowmanager.app.controllers.requests.RequestNewWorkflowEntity;
 import com.workflowmanager.app.controllers.responses.ResponseAttribute;
+import com.workflowmanager.app.controllers.responses.ResponseEntityChangeState;
 import com.workflowmanager.app.controllers.responses.ResponseWorkflowEntity;
+import com.workflowmanager.app.controllers.responses.ResponseWorkflowState;
 import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.NewWorkflowAttributeDTO;
@@ -40,18 +43,21 @@ public class WorkflowEntityController {
   private final WorkflowStateRepository workflowStateRepository;
   private final WorkflowAttributeDescriptionRepository attributeDescriptionRepository;
   private final WorkflowAttributeRepository workflowAttributeRepository;
+  private final Publisher publisher;
 
   public WorkflowEntityController(
       WorkflowEntityRepository workflowEntityRepository,
       WorkflowRepository workflowRepository,
       WorkflowStateRepository workflowStateRepository,
       WorkflowAttributeDescriptionRepository attributeDescriptionRepository,
-      WorkflowAttributeRepository workflowAttributeRepository) {
+      WorkflowAttributeRepository workflowAttributeRepository,
+      Publisher publisher) {
     this.workflowEntityRepository = workflowEntityRepository;
     this.workflowRepository = workflowRepository;
     this.workflowStateRepository = workflowStateRepository;
     this.attributeDescriptionRepository = attributeDescriptionRepository;
     this.workflowAttributeRepository = workflowAttributeRepository;
+    this.publisher = publisher;
   }
 
   @GetMapping("workflow-entities/{workflowEntityId}")
@@ -106,7 +112,15 @@ public class WorkflowEntityController {
     WorkflowEntity workflowEntity = new WorkflowEntity(dto, workflow);
     this.workflowEntityRepository.save(workflowEntity);
 
-    return this.getEntity(workflowEntity.getId());
+    ResponseWorkflowEntity ret = this.getEntity(workflowEntity.getId());
+
+    Publisher.MessageBatch batch = this.publisher.batch();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+
+    this.publisher.publish(batch);
+
+    return ret;
   }
 
   @PutMapping("workflow-entities/{entityId}/attributes/{attributeName}")
@@ -142,19 +156,28 @@ public class WorkflowEntityController {
 
     this.workflowAttributeRepository.save(attribute);
 
-    return new ResponseAttribute(
-        this.workflowAttributeRepository
-            .getByBaseEntityAndDescriptionName(
-                entity.getId(),
-                attributeDescription.getName(),
-                WorkflowAttributeReferenceType.WORKFLOW_ENTITY)
-            .orElseThrow());
+    ResponseAttribute ret =
+        new ResponseAttribute(
+            this.workflowAttributeRepository
+                .getByBaseEntityAndDescriptionName(
+                    entity.getId(),
+                    attributeDescription.getName(),
+                    WorkflowAttributeReferenceType.WORKFLOW_ENTITY)
+                .orElseThrow());
+
+    Publisher.MessageBatch batch = this.publisher.batch();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+
+    this.publisher.publish(batch);
+
+    return ret;
   }
 
   @Operation(description = "Try moving an entity to a new state")
   @PatchMapping("workflow-entities/{entityId}/workflow-states/{newStateId}")
   @ResponseBody
-  public ResponseWorkflowEntity moveState(
+  public ResponseEntityChangeState moveState(
       @PathVariable("entityId") Integer entityId, @PathVariable("newStateId") Integer newStateId) {
     AuthorizationDTO auth = new AuthorizationDTO(1, 1);
 
@@ -176,7 +199,32 @@ public class WorkflowEntityController {
     this.workflowStateRepository.save(nextState);
     this.workflowEntityRepository.save(entity);
 
-    return this.getEntity(entity.getId());
+    ResponseWorkflowEntity retEntity = this.getEntity(entity.getId());
+    ResponseWorkflowState from =
+        new ResponseWorkflowState(
+            this.workflowStateRepository
+                .getByIdAndClientId(curState.getId(), auth.clientId)
+                .orElseThrow());
+    ResponseWorkflowState to =
+        new ResponseWorkflowState(
+            this.workflowStateRepository
+                .getByIdAndClientId(nextState.getId(), auth.clientId)
+                .orElseThrow());
+
+    Publisher.MessageBatch batch = this.publisher.batch();
+
+    batch.add_to_batch(retEntity, Publisher.MessageType.UPDATE, auth);
+    batch.add_to_batch(from, Publisher.MessageType.UPDATE, auth);
+    batch.add_to_batch(to, Publisher.MessageType.UPDATE, auth);
+
+    this.publisher.publish(batch);
+
+    ResponseEntityChangeState ret = new ResponseEntityChangeState();
+    ret.entity = retEntity;
+    ret.from = from;
+    ret.to = to;
+
+    return ret;
   }
 
   @GetMapping("workflow-entities/{entityId}/attributes")

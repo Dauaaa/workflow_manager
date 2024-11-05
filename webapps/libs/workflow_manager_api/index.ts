@@ -448,6 +448,11 @@ export interface components {
             /** @description The expressions that need to return true so the change may happen */
             expressions: string[];
         };
+        ResponseEntityChangeState: {
+            entity: components["schemas"]["ResponseWorkflowEntity"];
+            from: components["schemas"]["ResponseWorkflowState"];
+            to: components["schemas"]["ResponseWorkflowState"];
+        };
     };
     responses: never;
     parameters: never;
@@ -796,7 +801,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ResponseWorkflowEntity"];
+                    "*/*": components["schemas"]["ResponseEntityChangeState"];
                 };
             };
         };
