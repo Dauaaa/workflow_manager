@@ -60,7 +60,12 @@ public class Workflow extends BaseEntity {
     }
 
     // set
-    this.initialState = config.initialState;
+    this.setInitialState(config.initialState);
+  }
+
+  private void setInitialState(WorkflowState initialState) {
+    this.initialState = initialState;
+    this.initialStateId = initialState.getId();
   }
 
   @PostLoad

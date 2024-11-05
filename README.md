@@ -33,7 +33,7 @@ Showcase some of my current developer skills and knowledge.
     - [ ] frontend
     - [ ] backend
 - [ ] configure change rules
-    - [ ] frontend
+    - [x] frontend
     - [x] backend
 - [ ] websocket integration
     - [ ] frontend

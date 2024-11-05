@@ -114,7 +114,7 @@ public class WorkflowController {
 
     this.workflowRepository.save(workflow);
 
-    return new ResponseWorkflow(workflow);
+    return this.getWorkflow(workflow.getId());
   }
 
   @PostMapping("workflows/{workflowId}/attribute-descriptions")

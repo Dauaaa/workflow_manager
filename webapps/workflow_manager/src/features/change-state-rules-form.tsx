@@ -1,7 +1,15 @@
 import { Button } from "@/components/ui/button";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -17,11 +25,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "@/store/context";
 import { parsers, WorkflowState } from "@/store/workflow-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TrashIcon } from "@radix-ui/react-icons";
 import { observer } from "mobx-react-lite";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm, UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 
@@ -38,51 +48,125 @@ export const ChangeStateRulesForm = observer(
 
     const states = workflowStore.workflowStatesByWorkflow.get(workflowId);
     const curState = states ? states.get(stateId) : undefined;
+    const [curToState, setCurToState] = useState<WorkflowState | undefined>();
 
     return (
-      <div className="flex flex-col font-mono gap-4">
+      <div className="flex flex-col font-mono gap-4 w-full">
         <h2 className="text-xl font-bold">Configure change state rules</h2>
         {states && curState ? (
-          <AddChangeRuleForm curState={curState} states={states} />
+          <>
+            <EditChangeRuleForm
+              curState={curState}
+              states={states}
+              curToState={curToState}
+              setCurToState={setCurToState}
+            />
+            <EditChangeRuleList
+              curState={curState}
+              states={states}
+              curToState={curToState}
+              setCurToState={setCurToState}
+            />
+          </>
         ) : null}
       </div>
     );
   },
 );
 
-const AddChangeRuleFormSchema = parsers.RequestSetChangeStateRuleSchema;
-type AddChangeRuleFormType = z.infer<typeof AddChangeRuleFormSchema>;
+interface CommonProps {
+  states: Map<number, WorkflowState>;
+  curState: WorkflowState;
+  curToState?: WorkflowState;
+  setCurToState: React.Dispatch<
+    React.SetStateAction<WorkflowState | undefined>
+  >;
+}
 
-const AddChangeRuleForm = observer(
-  ({
-    states,
-    curState,
-  }: {
-    states: Map<number, WorkflowState>;
-    curState: WorkflowState;
-  }) => {
+const SetChangeRuleFormSchema = parsers.RequestSetChangeStateRuleSchema;
+type SetChangeRuleFormType = z.infer<typeof SetChangeRuleFormSchema>;
+
+const EditChangeRuleList = observer(
+  ({ states, curState, curToState, setCurToState }: CommonProps) => {
+    const statesWithRule = new Set(
+      curState.changeRules.map((rule) => rule.toId),
+    );
+    return (
+      <Card className="flex flex-col font-mono p-4">
+        <CardTitle>States with defined rules</CardTitle>
+        <CardDescription>
+          These states have rules defined from {curState.name ?? "-"}
+        </CardDescription>
+        <CardContent className="flex flex-col gap-4 mt-4">
+          {[...states.values()]
+            .filter((state) => statesWithRule.has(state.id))
+            .map((state) => (
+              <div
+                key={state.id}
+                className={cn(
+                  "border rounded-3xl px-8 py-4 text-xl font-bold w-72 line-clamp-1 hover:bg-accent hover:cursor-pointer",
+                  {
+                    "bg-accent": curToState?.id === state.id,
+                  },
+                )}
+                onClick={() => setCurToState(state)}
+              >
+                {state.name}
+              </div>
+            ))}
+        </CardContent>
+        {curToState ? (
+          <CardFooter>Editting {curToState.name}</CardFooter>
+        ) : null}
+      </Card>
+    );
+  },
+);
+
+const EditChangeRuleForm = observer(
+  ({ states, curState, setCurToState, curToState }: CommonProps) => {
     const workflowStore = useWorkflowStore();
 
-    const form = useForm<AddChangeRuleFormType>({
-      resolver: zodResolver(AddChangeRuleFormSchema),
+    const form = useForm<SetChangeRuleFormType>({
+      resolver: zodResolver(SetChangeRuleFormSchema),
       defaultValues: {
         expressions: ["true"],
       },
     });
 
+    useEffect(() => {
+      if (curToState && form.getValues().toId !== curToState.id) {
+        form.setValue("toId", curToState.id);
+      }
+    }, [curToState, form, curState]);
+
+    const toStateId = form.watch("toId");
+
+    useEffect(() => {
+      setCurToState(workflowStore.workflowStates.get(toStateId));
+      form.setValue(
+        "expressions",
+        curState?.changeRules.find((rule) => rule.toId === toStateId)
+          ?.expressions ?? ["true"],
+      );
+    }, [setCurToState, toStateId]);
+
     return (
       <Form {...form}>
         <form
           className="font-mono"
-          onSubmit={form.handleSubmit((rule) =>
-            workflowStore.setChangeRule({
+          onSubmit={form.handleSubmit(async (rule) => {
+            await workflowStore.setChangeRule({
               workflowStateId: curState.id,
               rule,
-            }),
-          )}
+            });
+            form.reset();
+          })}
         >
           <StatePickField form={form} states={states} curState={curState} />
-          <ExpressionsField form={form} states={states} curState={curState} />
+          {toStateId ? (
+            <ExpressionsField form={form} states={states} curState={curState} />
+          ) : null}
           <Button type="submit">Submit</Button>
         </form>
       </Form>
@@ -93,21 +177,21 @@ const AddChangeRuleForm = observer(
 interface ChangeStateRuleCommonProps {
   states: Map<number, WorkflowState>;
   curState: WorkflowState;
-  form: UseFormReturn<AddChangeRuleFormType>;
+  form: UseFormReturn<SetChangeRuleFormType>;
 }
 
 const StatePickField = observer(
   ({ states, curState, form }: ChangeStateRuleCommonProps) => {
-    const curRulesByToId = new Map(
-      curState.changeRules.map((rule) => [rule.toId, rule]),
-    );
     return (
       <FormField
         control={form.control}
         name="toId"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>To state</FormLabel>
+            <FormLabel>Change move state rules</FormLabel>
+            <FormDescription>
+              Add or edit rules defining how entities move between states
+            </FormDescription>
             <FormControl>
               <Select
                 {...field}
@@ -118,20 +202,21 @@ const StatePickField = observer(
                     : field.value.toString()
                 }
               >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Pick a state" />
-                </SelectTrigger>
+                <div className="flex relative w-fit">
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Pick a state" />
+                  </SelectTrigger>
+                  <Button className="absolute right-0" variant="destructive">
+                    X
+                  </Button>
+                </div>
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>States</SelectLabel>
                     {[...states.values()]
                       .filter((state) => state.id !== curState.id)
                       .map((state) => (
-                        <SelectItem
-                          key={state.id}
-                          value={state.id.toString()}
-                          disabled={curRulesByToId.has(state.id)}
-                        >
+                        <SelectItem key={state.id} value={state.id.toString()}>
                           {state.name}
                         </SelectItem>
                       ))}
@@ -154,33 +239,39 @@ const ExpressionsField = ({ form }: ChangeStateRuleCommonProps) => {
 
   return (
     <FormItem>
-      <FormLabel>Rules</FormLabel>
-      {fieldArray.fields.map((field, index) => (
-        <div key={field.id} className="flex justify-between">
-          <Textarea
-            className="w-32 h-32"
-            {...form.register(`expressions.${index}`)}
-          />
-          <Button
-            disabled={fieldArray.fields.length === 1}
-            onClick={(e) => {
-              e.preventDefault();
-              fieldArray.remove(index);
-            }}
-          >
-            <TrashIcon className="text-destructive-foreground" />
-          </Button>
-        </div>
-      ))}
-      <Button
-        onClick={(e) => {
-          fieldArray.append("true");
-          e.preventDefault();
-        }}
-      >
-        Add expression
-      </Button>
-      <FormMessage />
+      <FormLabel className="flex justify-between">
+        <span className="mt-auto">Rules</span>
+        <Button
+          onClick={(e) => {
+            fieldArray.append("true");
+            e.preventDefault();
+          }}
+        >
+          Add expression
+        </Button>
+      </FormLabel>
+      <div className="flex flex-col gap-6">
+        {fieldArray.fields.map((field, index) => (
+          <div key={field.id} className="flex justify-between">
+            <Textarea
+              className="w-full h-40"
+              {...form.register(`expressions.${index}`)}
+            />
+            <Button
+              disabled={fieldArray.fields.length === 1}
+              onClick={(e) => {
+                e.preventDefault();
+                fieldArray.remove(index);
+              }}
+              variant="destructive"
+              className="h-40"
+            >
+              <TrashIcon />
+            </Button>
+          </div>
+        ))}
+        <FormMessage />
+      </div>
     </FormItem>
   );
 };

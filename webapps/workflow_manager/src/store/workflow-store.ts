@@ -904,7 +904,10 @@ export module parsers {
   });
 
   export const RequestNewAttributeDescriptionSchema = z.object({
-    name: z.string(),
+    name: z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, {
+      message:
+        "Name must start with letter and include only letters, digits and underscore.",
+    }),
     refType: z.enum(WORKFLOW_ATTRIBUTE_REFERENCE_TYPES),
     attrType: z.enum(WORKFLOW_ATTRIBUTE_TYPES),
     expression: WorkflowAttributeExprRuleSchema.optional(),

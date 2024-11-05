@@ -1,5 +1,6 @@
 import { useWorkflowStore } from "@/store/context";
 import { ChangeStateRule, WorkflowState } from "@/store/workflow-store";
+import { CubeIcon } from "@radix-ui/react-icons";
 import { observer } from "mobx-react-lite";
 
 export const StateChangeOptions = observer(
@@ -37,6 +38,14 @@ export const StateChangeOptions = observer(
               ]
             : [];
         }) ?? null}
+        {curState?.changeRules.length === 0 ? (
+          <div className="flex flex-col">
+            <CubeIcon className="w-20 h-20 mx-auto" />
+            <h3 className="text-xl font-bold text-center">
+              No states to move to
+            </h3>
+          </div>
+        ) : null}
       </div>
     );
   },

@@ -151,8 +151,6 @@ const StateCollapser = observer(
     const pageStore = useContext(PageContext);
     const drawerContext = pageStore.drawerContext.current;
 
-    console.log(state.name, "rerender");
-
     if (drawerContext && drawerContext.refType === "WORKFLOW_ENTITY") {
       const entity = workflowStore.workflowEntities.get(
         drawerContext.baseEntityId,
@@ -269,14 +267,14 @@ const AttributeSheet = observer(() => {
         if (!open) pageStore.setSheetContext(undefined);
       }}
     >
-      <SheetContent className="sm:max-w-none w-[900px] font-mono overflow-y-auto">
+      <SheetContent className="sm:max-w-none min-w-[60vw] w-[900px] font-mono overflow-y-auto">
         {ctx ? (
           <>
             <h2 className="text-xl font-bold">
               {WorkflowAttributeReferenceTypePretty[ctx.refType]}:{" "}
               {currentEntityName}
             </h2>
-            <div className="flex justify-between h-full">
+            <div className="flex justify-between gap-12">
               <AttributesForm {...ctx} />
               {ctx.refType === "WORKFLOW_STATE" ? (
                 <ChangeStateRulesForm
@@ -285,10 +283,18 @@ const AttributeSheet = observer(() => {
                 />
               ) : null}
               {ctx.refType === "WORKFLOW_ENTITY" ? (
-                <StateChangeOptions
-                  entityId={ctx.baseEntityId}
-                  workflowId={ctx.workflowId}
-                />
+                <Card className="p-4">
+                  <CardTitle>Move to state</CardTitle>
+                  <CardDescription>
+                    Move entity to one of these states
+                  </CardDescription>
+                  <CardContent className="mt-4">
+                    <StateChangeOptions
+                      entityId={ctx.baseEntityId}
+                      workflowId={ctx.workflowId}
+                    />
+                  </CardContent>
+                </Card>
               ) : null}
               {ctx.refType === "WORKFLOW" ? (
                 <div className="flex flex-col">

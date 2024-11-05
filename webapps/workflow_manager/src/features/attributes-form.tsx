@@ -43,7 +43,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { PopoverClose } from "@radix-ui/react-popover";
 import { FormSubmitter } from "@/components/form-submitter";
 
 export const AttributesForm = observer(
@@ -160,7 +159,14 @@ const NameField = ({ form }: CommonAttributeDescriptionFieldProps) => (
       <FormItem>
         <FormLabel>Attribute name</FormLabel>
         <FormControl>
-          <Input placeholder="my-attribute" {...field} />
+          <Input
+            placeholder="my-attribute"
+            {...field}
+            onChange={(e) => {
+              field.onChange(e.target.value);
+              form.trigger("name");
+            }}
+          />
         </FormControl>
         <FormMessage />
       </FormItem>
