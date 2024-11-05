@@ -4,6 +4,7 @@ import com.workflowmanager.app.core.BaseEntity;
 import com.workflowmanager.app.core.ErrorUtils;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
+import java.util.UUID;
 import org.springframework.web.server.ResponseStatusException;
 
 public abstract class ResponseBaseEntity {
@@ -11,9 +12,9 @@ public abstract class ResponseBaseEntity {
 
   @NotNull public String name;
 
-  @NotNull public Integer userId;
+  @NotNull public UUID userId;
 
-  @NotNull public Integer clientId;
+  @NotNull public UUID clientId;
 
   @NotNull public Instant creationTime;
 

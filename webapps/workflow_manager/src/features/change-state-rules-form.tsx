@@ -207,7 +207,11 @@ const StatePickField = observer(
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Pick a state" />
                   </SelectTrigger>
-                  <Button onClick={() => field.onChange(undefined)} className="absolute right-0" variant="destructive">
+                  <Button
+                    onClick={() => field.onChange(undefined)}
+                    className="absolute right-0"
+                    variant="destructive"
+                  >
                     X
                   </Button>
                 </div>

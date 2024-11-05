@@ -18,5 +18,7 @@ vite_ts_project(
         "//webapps/workflow_manager/src/pages/workflow-manage",
         "//webapps/workflow_manager/src/store:workflow-store",
         "//webapps/workflow_manager/src/components:theme-provider",
+        "//webapps/workflow_manager/src/features:authentication-context",
+        "//webapps/workflow_manager/src/features:authentication-display",
     ]
 )

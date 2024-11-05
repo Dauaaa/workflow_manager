@@ -11,6 +11,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.util.UUID;
 import org.springframework.web.server.ResponseStatusException;
 
 @Schema(
@@ -32,12 +33,12 @@ public abstract class BaseEntity {
   @Schema(description = "Id of the user that created the entity.")
   @Column(name = "user_id", nullable = false, updatable = false)
   @NotNull
-  private Integer userId;
+  private UUID userId;
 
   @Schema(description = "Id of the client that owns the entity.")
   @Column(name = "client_id", nullable = false, updatable = false)
   @NotNull
-  private Integer clientId;
+  private UUID clientId;
 
   @Column(name = "creation_time", nullable = false, updatable = false)
   @NotNull
@@ -78,11 +79,11 @@ public abstract class BaseEntity {
     return this.name;
   }
 
-  public Integer getUserId() {
+  public UUID getUserId() {
     return this.userId;
   }
 
-  public Integer getClientId() {
+  public UUID getClientId() {
     return this.clientId;
   }
 

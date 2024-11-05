@@ -3,6 +3,7 @@ package com.workflowmanager.app.repositories;
 import com.workflowmanager.app.domains.WorkflowState;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
@@ -20,7 +21,7 @@ public interface WorkflowStateRepository extends Repository<WorkflowState, Integ
           + " WorkflowEntity we WHERE we.currentState.id = ws.id), ws.workflow.id) FROM"
           + " WorkflowState ws WHERE  ws.workflow.id = :workflowId AND ws.clientId = :clientId")
   List<WorkflowState> listByWorkflowIdAndClientId(
-      @Param("workflowId") Integer workflowId, @Param("clientId") Integer clientId);
+      @Param("workflowId") Integer workflowId, @Param("clientId") UUID clientId);
 
   /** Get workflow state by id */
   @Query(
@@ -29,7 +30,7 @@ public interface WorkflowStateRepository extends Repository<WorkflowState, Integ
           + " ws WHERE ws.id = :id AND ws.clientId = :clientId")
   @Transactional(readOnly = true)
   Optional<WorkflowState> getByIdAndClientId(
-      @Param("id") Integer id, @Param("clientId") Integer clientId);
+      @Param("id") Integer id, @Param("clientId") UUID clientId);
 
   /** List workflow state by id */
   @Query(
@@ -37,5 +38,5 @@ public interface WorkflowStateRepository extends Repository<WorkflowState, Integ
           + " ws.clientId = :clientId")
   @Transactional(readOnly = true)
   Optional<WorkflowState> getByIdAndClientIdWithWorkflow(
-      @Param("id") Integer id, @Param("clientId") Integer clientId);
+      @Param("id") Integer id, @Param("clientId") UUID clientId);
 }

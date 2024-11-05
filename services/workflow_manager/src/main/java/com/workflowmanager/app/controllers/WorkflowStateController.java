@@ -1,5 +1,6 @@
 package com.workflowmanager.app.controllers;
 
+import com.workflowmanager.app.App;
 import com.workflowmanager.app.Publisher;
 import com.workflowmanager.app.controllers.requests.RequestNewAttribute;
 import com.workflowmanager.app.controllers.requests.RequestNewWorkflowState;
@@ -23,7 +24,10 @@ import com.workflowmanager.app.repositories.WorkflowAttributeRepository;
 import com.workflowmanager.app.repositories.WorkflowRepository;
 import com.workflowmanager.app.repositories.WorkflowStateRepository;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +35,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 @CrossOrigin
@@ -60,8 +65,8 @@ public class WorkflowStateController {
 
   @GetMapping("workflows/{workflowId}/workflow-states")
   @ResponseBody
-  public List<ResponseWorkflowState> listStates(@PathVariable("workflowId") Integer workflowId) {
-    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+  public List<ResponseWorkflowState> listStates(@RequestHeader Map<String, String> headers, @PathVariable("workflowId") Integer workflowId) {
+    AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     return this.workflowStateRepository
         .listByWorkflowIdAndClientId(workflowId, auth.clientId)
@@ -72,8 +77,8 @@ public class WorkflowStateController {
 
   @GetMapping("workflow-states/{workflowStateId}")
   @ResponseBody
-  public ResponseWorkflowState getState(@PathVariable("workflowStateId") Integer workflowStateId) {
-    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+  public ResponseWorkflowState getState(@RequestHeader Map<String, String> headers, @PathVariable("workflowStateId") Integer workflowStateId) {
+    AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     return new ResponseWorkflowState(
         ErrorUtils.onEmpty404(
@@ -82,10 +87,11 @@ public class WorkflowStateController {
 
   @PostMapping("workflows/{workflowId}/workflow-states")
   @ResponseBody
-  public ResponseWorkflowState createState(
+  public ResponseEntity<ResponseWorkflowState> createState(
+      @RequestHeader Map<String, String> headers,
       @PathVariable("workflowId") Integer workflowId,
       @RequestBody RequestNewWorkflowState request) {
-    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+    AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     Workflow workflow =
         ErrorUtils.onEmpty404(
@@ -96,23 +102,26 @@ public class WorkflowStateController {
     WorkflowState workflowState = new WorkflowState(dto, workflow);
     this.workflowStateRepository.save(workflowState);
 
-    ResponseWorkflowState ret = this.getState(workflowState.getId());
+    ResponseWorkflowState ret = this.getState(headers, workflowState.getId());
 
     Publisher.MessageBatch batch = this.publisher.batch();
 
-    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+    UUID eventId = UUID.randomUUID();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth, eventId);
 
     this.publisher.publish(batch);
 
-    return ret;
+    return ResponseEntity.ok().headers(App.mutationResponseHeaders(eventId)).body(ret);
   }
 
   @PostMapping("workflow-states/{workflowStateId}/rules")
   @ResponseBody
-  public ResponseWorkflowState createRule(
+  public ResponseEntity<ResponseWorkflowState> createRule(
+      @RequestHeader Map<String, String> headers,
       @PathVariable("workflowStateId") Integer workflowStateId,
       @RequestBody RequestSetChangeStateRule request) {
-    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+    AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     WorkflowState from =
         ErrorUtils.onEmpty404(
@@ -136,24 +145,27 @@ public class WorkflowStateController {
 
     this.changeStateRulesRepository.save(rules);
 
-    ResponseWorkflowState ret = this.getState(from.getId());
+    ResponseWorkflowState ret = this.getState(headers, from.getId());
 
     Publisher.MessageBatch batch = this.publisher.batch();
 
-    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+    UUID eventId = UUID.randomUUID();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth, eventId);
 
     this.publisher.publish(batch);
 
-    return ret;
+    return ResponseEntity.ok().headers(App.mutationResponseHeaders(eventId)).body(ret);
   }
 
   @PutMapping("workflow-states/{stateId}/attributes/{attributeName}")
   @ResponseBody
-  public ResponseAttribute setAttribute(
+  public ResponseEntity<ResponseAttribute> setAttribute(
+      @RequestHeader Map<String, String> headers,
       @PathVariable("stateId") Integer stateId,
       @PathVariable("attributeName") String attributeName,
       @RequestBody RequestNewAttribute request) {
-    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+    AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     WorkflowState state =
         ErrorUtils.onEmpty404(
@@ -191,17 +203,19 @@ public class WorkflowStateController {
 
     Publisher.MessageBatch batch = this.publisher.batch();
 
-    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth);
+    UUID eventId = UUID.randomUUID();
+
+    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth, eventId);
 
     this.publisher.publish(batch);
 
-    return ret;
+    return ResponseEntity.ok().headers(App.mutationResponseHeaders(eventId)).body(ret);
   }
 
   @GetMapping("workflow-states/{stateId}/attributes")
   @ResponseBody
-  public List<ResponseAttribute> listAttributes(@PathVariable("stateId") Integer stateId) {
-    AuthorizationDTO auth = new AuthorizationDTO(1, 1);
+  public List<ResponseAttribute> listAttributes(@RequestHeader Map<String, String> headers, @PathVariable("stateId") Integer stateId) {
+    AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     // authorize
     ErrorUtils.onEmpty404(

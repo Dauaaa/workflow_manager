@@ -7,6 +7,7 @@ import com.workflowmanager.app.core.AuthorizationDTO;
 import com.workflowmanager.app.core.ErrorUtils;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
@@ -50,13 +51,14 @@ public class Publisher {
       this.mapper = mapper;
     }
 
-    public <T> void add_to_batch(T obj, MessageType msgType, AuthorizationDTO auth) {
+    public <T> void add_to_batch(T obj, MessageType msgType, AuthorizationDTO auth, UUID eventId) {
       Message message = new Message();
       message.obj = obj;
       message.objType = obj.getClass().getSimpleName();
       message.msgType = msgType;
       message.clientId = auth.clientId;
       message.userId = auth.userId;
+      message.eventId = eventId;
 
       try {
         this.messages.add(this.mapper.writeValueAsString(message));
@@ -70,8 +72,9 @@ public class Publisher {
     public Object obj;
     public String objType;
     public MessageType msgType;
-    public Integer clientId;
-    public Integer userId;
+    public UUID clientId;
+    public UUID userId;
+    public UUID eventId;
   }
 
   public enum MessageType {

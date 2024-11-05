@@ -3,6 +3,7 @@ package com.workflowmanager.app.repositories;
 import com.workflowmanager.app.domains.Workflow;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
@@ -17,7 +18,7 @@ public interface WorkflowRepository extends Repository<Workflow, Integer> {
   /** Upsert workflow */
   @Query("SELECT w FROM Workflow w WHERE w.clientId = :clientId")
   @Transactional(readOnly = true)
-  List<Workflow> list(@Param("clientId") Integer clientId);
+  List<Workflow> list(@Param("clientId") UUID clientId);
 
   /** Get workflow by id and client_id */
   @Query(
@@ -25,5 +26,5 @@ public interface WorkflowRepository extends Repository<Workflow, Integer> {
           + " :clientId")
   @Transactional(readOnly = true)
   Optional<Workflow> getByIdAndClientId(
-      @Param("id") Integer id, @Param("clientId") Integer clientId);
+      @Param("id") Integer id, @Param("clientId") UUID clientId);
 }

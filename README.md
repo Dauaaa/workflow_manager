@@ -42,7 +42,7 @@ Showcase some of my current developer skills and knowledge.
     - [x] publisher (workflowmanager)
     - [x] consumer (websocket service)
 - [ ] redis message queue
-- [ ] simple authorization
+- [x] simple authorization
 - [ ] websocket and caching for the store
 - [ ] CEL
     - [ ] frontend

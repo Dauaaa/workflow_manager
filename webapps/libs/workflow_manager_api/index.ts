@@ -294,10 +294,10 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
-            /** Format: int32 */
-            userId: number;
-            /** Format: int32 */
-            clientId: number;
+            /** Format: uuid */
+            userId: string;
+            /** Format: uuid */
+            clientId: string;
             /** Format: date-time */
             creationTime: string;
             /** Format: date-time */
@@ -363,10 +363,10 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
-            /** Format: int32 */
-            userId: number;
-            /** Format: int32 */
-            clientId: number;
+            /** Format: uuid */
+            userId: string;
+            /** Format: uuid */
+            clientId: string;
             /** Format: date-time */
             creationTime: string;
             /** Format: date-time */
@@ -384,10 +384,10 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
-            /** Format: int32 */
-            userId: number;
-            /** Format: int32 */
-            clientId: number;
+            /** Format: uuid */
+            userId: string;
+            /** Format: uuid */
+            clientId: string;
             /** Format: date-time */
             creationTime: string;
             /** Format: date-time */

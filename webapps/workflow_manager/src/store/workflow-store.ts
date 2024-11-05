@@ -1,4 +1,4 @@
-import createClient from "openapi-fetch";
+import createClient, { HeadersOptions } from "openapi-fetch";
 import type { paths, components } from "workflow_manager_api";
 import { z } from "zod";
 import {
@@ -17,6 +17,14 @@ import "dayjs";
 import "decimal.js";
 import { makeObservable, observable, action } from "mobx";
 
+export interface Authentication {
+  clientId: string;
+  userId: string;
+}
+
+const USER_ID_KEY = "user-id";
+const CLIENT_ID_KEY = "client-id";
+
 /**
  * All in one store. It guarantees the application state is in sync with the servers.
  *
@@ -30,6 +38,8 @@ export class WorkflowStore {
     this.workflowManagerService =
       workflowManagerService ?? new WorkflowManagerService();
 
+    this.workflowManagerService.setSeenEvents(this.seenEvents);
+
     makeObservable<
       WorkflowStore,
       | "upsertWorkflows"
@@ -37,6 +47,8 @@ export class WorkflowStore {
       | "upsertEntities"
       | "upsertAttributeDescriptions"
       | "upsertAttributes"
+      | "authenticationInner"
+      | "clear"
     >(this, {
       workflows: observable,
       workflowStates: observable,
@@ -47,12 +59,28 @@ export class WorkflowStore {
       attributeDescriptionsByWorkflows: observable,
       stateAttributes: observable,
       entityAttributes: observable,
+      authenticationInner: observable,
       upsertWorkflows: action,
       upsertStates: action,
       upsertEntities: action,
       upsertAttributeDescriptions: action,
       upsertAttributes: action,
+      setAuthentication: action,
+      clear: action,
     });
+
+    const clientId = localStorage.getItem(CLIENT_ID_KEY);
+    const userId = localStorage.getItem(USER_ID_KEY);
+
+    const isUuid = (s: string | null): s is string =>
+      s ? z.string().uuid().safeParse(s).success : false;
+
+    if (!isUuid(clientId)) this.setAuthentication();
+    else
+      this.setAuthentication({
+        clientId,
+        userId: isUuid(userId) ? userId : self.crypto.randomUUID(),
+      });
   }
 
   public workflowManagerService: WorkflowManagerService;
@@ -78,6 +106,40 @@ export class WorkflowStore {
     new Map();
   public entityAttributes: Map<number, Map<string, WorkflowAttribute>> =
     new Map();
+
+  private authenticationInner: { current?: Authentication } = {};
+
+  private seenEvents: Set<string> = new Set();
+
+  public get authentication() {
+    return this.authenticationInner;
+  }
+
+  public setAuthentication(auth?: Authentication) {
+    this.authenticationInner.current = auth;
+
+    if (auth) {
+      localStorage.setItem(CLIENT_ID_KEY, auth.clientId);
+      localStorage.setItem(USER_ID_KEY, auth.userId);
+      this.workflowManagerService.setAuthentication(auth);
+    } else {
+      localStorage.removeItem(CLIENT_ID_KEY);
+      localStorage.removeItem(USER_ID_KEY);
+      this.clear();
+    }
+  }
+
+  private clear() {
+    this.workflowManagerService.setAuthentication();
+    this.workflows.clear();
+    this.workflowStates.clear();
+    this.workflowEntities.clear();
+    this.seenEvents.clear();
+    this.workflowAttributes.clear();
+    this.stateAttributes.clear();
+    this.entityAttributes.clear();
+    this.attributeDescriptionsByWorkflows.clear();
+  }
 
   public getAttributeDescription = ({
     workflowId,
@@ -395,7 +457,11 @@ class WorkflowManagerService {
 
     const response = await this.client.POST("/workflows", {
       body: parsedNewWorkflow,
+      headers: this.getHeaders(),
     });
+
+    const eventId = response.response.headers.get("event-id");
+    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
     return parsers.WorkflowSchema.parse(response?.data);
   };
@@ -414,8 +480,12 @@ class WorkflowManagerService {
         params: {
           path: { workflowId },
         },
+        headers: this.getHeaders(),
       },
     );
+
+    const eventId = response.response.headers.get("event-id");
+    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
     return parsers.WorkflowStateSchema.parse(response?.data);
   };
@@ -434,8 +504,12 @@ class WorkflowManagerService {
         params: {
           path: { workflowId },
         },
+        headers: this.getHeaders(),
       },
     );
+
+    const eventId = response.response.headers.get("event-id");
+    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
     return parsers.WorkflowEntitySchema.parse(response?.data);
   };
@@ -453,8 +527,12 @@ class WorkflowManagerService {
           path: { workflowId },
         },
         body,
+        headers: this.getHeaders(),
       },
     );
+
+    const eventId = response.response.headers.get("event-id");
+    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
     return parsers.WorkflowAttributeDescriptionSchema.parse(response?.data);
   };
@@ -484,6 +562,7 @@ class WorkflowManagerService {
                 attributeName,
               },
             },
+            headers: this.getHeaders(),
           },
         );
       }
@@ -498,6 +577,7 @@ class WorkflowManagerService {
                 attributeName,
               },
             },
+            headers: this.getHeaders(),
           },
         );
       }
@@ -512,10 +592,14 @@ class WorkflowManagerService {
                 attributeName,
               },
             },
+            headers: this.getHeaders(),
           },
         );
       }
     }
+
+    const eventId = response.response.headers.get("event-id");
+    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
     return parsers.WorkflowAttributeSchema.parse(response?.data);
   };
@@ -532,7 +616,11 @@ class WorkflowManagerService {
         path: { workflowId },
       },
       body: parsedConfig,
+      headers: this.getHeaders(),
     });
+
+    const eventId = response.response.headers.get("event-id");
+    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
     return parsers.WorkflowSchema.parse(response.data);
   };
@@ -551,9 +639,12 @@ class WorkflowManagerService {
         params: {
           path: { workflowStateId },
         },
+        headers: this.getHeaders(),
       },
     );
 
+    const eventId = response.response.headers.get("event-id");
+    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
     // TODO: response error handling
 
     // TODO: parser error handling
@@ -571,14 +662,20 @@ class WorkflowManagerService {
       "/workflow-entities/{entityId}/workflow-states/{newStateId}",
       {
         params: { path: { entityId, newStateId } },
+        headers: this.getHeaders(),
       },
     );
+
+    const eventId = response.response.headers.get("event-id");
+    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
     return parsers.ResponseEntityChangeStateSchema.parse(response?.data);
   };
 
   public listWorkflows = async () => {
-    const response = await this.client.GET("/workflows");
+    const response = await this.client.GET("/workflows", {
+      headers: this.getHeaders(),
+    });
 
     // TODO: response error handling
 
@@ -593,6 +690,7 @@ class WorkflowManagerService {
         params: {
           path: { workflowId },
         },
+        headers: this.getHeaders(),
       },
     );
 
@@ -609,6 +707,7 @@ class WorkflowManagerService {
         params: {
           path: { workflowStateId },
         },
+        headers: this.getHeaders(),
       },
     );
 
@@ -634,6 +733,7 @@ class WorkflowManagerService {
           params: {
             path: { workflowId: baseEntityId },
           },
+          headers: this.getHeaders(),
         });
         break;
       }
@@ -644,6 +744,7 @@ class WorkflowManagerService {
             params: {
               path: { stateId: baseEntityId },
             },
+            headers: this.getHeaders(),
           },
         );
         break;
@@ -655,6 +756,7 @@ class WorkflowManagerService {
             params: {
               path: { entityId: baseEntityId },
             },
+            headers: this.getHeaders(),
           },
         );
       }
@@ -673,6 +775,7 @@ class WorkflowManagerService {
         params: {
           path: { workflowId },
         },
+        headers: this.getHeaders(),
       },
     );
 
@@ -689,6 +792,7 @@ class WorkflowManagerService {
       params: {
         path: { workflowId },
       },
+      headers: this.getHeaders(),
     });
 
     // TODO: response error handling
@@ -704,6 +808,7 @@ class WorkflowManagerService {
         params: {
           path: { workflowStateId },
         },
+        headers: this.getHeaders(),
       },
     );
 
@@ -720,6 +825,7 @@ class WorkflowManagerService {
         params: {
           path: { workflowEntityId },
         },
+        headers: this.getHeaders(),
       },
     );
 
@@ -727,6 +833,25 @@ class WorkflowManagerService {
 
     // TODO: parser error handling
     return parsers.WorkflowEntitySchema.parse(response?.data);
+  };
+
+  public setSeenEvents = (seenEvents?: Set<string>) => {
+    this.seenEvents = seenEvents;
+  };
+
+  public setAuthentication = (authentication?: Authentication) => {
+    this.authentication = authentication;
+  };
+
+  private getHeaders = (): HeadersOptions => {
+    const headers: Record<string, string> = {};
+
+    if (this.authentication) {
+      headers[CLIENT_ID_KEY] = this.authentication.clientId;
+      headers[USER_ID_KEY] = this.authentication.userId;
+    }
+
+    return headers;
   };
 
   public constructor(client?: ReturnType<typeof createClient<paths>>) {
@@ -740,6 +865,8 @@ class WorkflowManagerService {
   }
 
   private client;
+  private seenEvents?: Set<string>;
+  private authentication?: Authentication;
 }
 
 export type Workflow = z.infer<typeof parsers.WorkflowSchema>;
@@ -809,8 +936,8 @@ export module parsers {
   const EntitySchema = z.object({
     id: z.number(),
     name: z.string().max(ENTITY_MAX_NAME_LENGTH),
-    userId: z.number(),
-    clientId: z.number(),
+    userId: z.string().uuid(),
+    clientId: z.string().uuid(),
     creationTime: DayjsSchema,
     updateTime: DayjsSchema,
     deletionTime: DayjsSchema.nullish().transform(standardUndefined),
@@ -888,10 +1015,10 @@ export module parsers {
   });
 
   export const ResponseEntityChangeStateSchema = z.object({
-      entity: WorkflowEntitySchema,
-      from: WorkflowStateSchema,
-      to: WorkflowStateSchema,
-  })
+    entity: WorkflowEntitySchema,
+    from: WorkflowStateSchema,
+    to: WorkflowStateSchema,
+  });
 
   export const RequestNewWorkflowSchema = RequestBaseEntitySchema;
 
