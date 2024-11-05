@@ -38,9 +38,9 @@ Showcase some of my current developer skills and knowledge.
 - [ ] websocket integration
     - [ ] frontend
     - [ ] backend
-- [ ] rabbitmq
+- [x] rabbitmq
     - [x] publisher (workflowmanager)
-    - [ ] consumer (websocket service)
+    - [x] consumer (websocket service)
 - [ ] redis message queue
 - [ ] simple authorization
 - [ ] websocket and caching for the store

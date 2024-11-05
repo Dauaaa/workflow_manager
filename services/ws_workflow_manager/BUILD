@@ -43,12 +43,14 @@ java_library(
         "@maven//:org_hibernate_orm_hibernate_core",
         "@maven//:jakarta_annotation_jakarta_annotation_api",
         "@maven//:org_springframework_spring_websocket",
+        "@maven//:org_springframework_amqp_spring_amqp",
+        "@maven//:org_springframework_amqp_spring_rabbit",
     ],
 )
 
 java_binary(
     name = "ws_workflow_manager",
     main_class = "com.wsworkflowmanager.app.App",
-    # resources = [":src/main/resources/application.properties"],
+    resources = [":src/main/resources/application.properties"],
     runtime_deps = [":ws_workflow_manager_lib"],
 )
