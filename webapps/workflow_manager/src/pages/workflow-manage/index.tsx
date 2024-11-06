@@ -277,13 +277,15 @@ const AttributeSheet = observer(() => {
             <div className="flex justify-between gap-12">
               <AttributesForm {...ctx} />
               {ctx.refType === "WORKFLOW_STATE" ? (
-                <ChangeStateRulesForm
-                  stateId={ctx.baseEntityId}
-                  workflowId={ctx.workflowId}
-                />
+                <div className="w-[40rem]">
+                  <ChangeStateRulesForm
+                    stateId={ctx.baseEntityId}
+                    workflowId={ctx.workflowId}
+                  />
+                </div>
               ) : null}
               {ctx.refType === "WORKFLOW_ENTITY" ? (
-                <Card className="p-4">
+                <Card className="p-4 max-w-[30rem]">
                   <CardTitle>Move to state</CardTitle>
                   <CardDescription>
                     Move entity to one of these states

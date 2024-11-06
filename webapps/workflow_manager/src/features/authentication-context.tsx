@@ -5,7 +5,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -39,8 +38,10 @@ export const AuthenticationContext = observer(() => {
     },
   });
 
+  const auth = workflowStore.authentication.current;
+
   return (
-    <Dialog open={!workflowStore.authentication.current}>
+    <Dialog open={!auth}>
       <DialogContent hideCloseIcon>
         <DialogHeader>
           <DialogTitle>Login</DialogTitle>

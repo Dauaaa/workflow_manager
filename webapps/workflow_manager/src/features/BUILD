@@ -53,6 +53,7 @@ vite_ts_project(
     deps = [
         "//webapps/workflow_manager:node_modules/@types/react",
         "//webapps/workflow_manager:node_modules/@types/react-dom",
+        "//webapps/workflow_manager:node_modules/react-router-dom",
         "//webapps/workflow_manager:node_modules/react",
         "//webapps/workflow_manager:node_modules/react-hook-form",
         "//webapps/workflow_manager:node_modules/@hookform/resolvers",

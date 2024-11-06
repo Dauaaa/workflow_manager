@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "@/store/context";
 import { parsers, WorkflowState } from "@/store/workflow-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TrashIcon } from "@radix-ui/react-icons";
+import { CubeIcon, TrashIcon } from "@radix-ui/react-icons";
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm, UseFormReturn } from "react-hook-form";
@@ -88,9 +88,12 @@ type SetChangeRuleFormType = z.infer<typeof SetChangeRuleFormSchema>;
 
 const EditChangeRuleList = observer(
   ({ states, curState, curToState, setCurToState }: CommonProps) => {
-    const statesWithRule = new Set(
+    const statesIdWithRule = new Set(
       curState.changeRules.map((rule) => rule.toId),
     );
+    const statesWithRule = [...states.values()]
+      .filter((state) => statesIdWithRule.has(state.id))
+      .sort((a, b) => a.id - b.id);
     return (
       <Card className="flex flex-col font-mono p-4">
         <CardTitle>States with defined rules</CardTitle>
@@ -98,23 +101,26 @@ const EditChangeRuleList = observer(
           These states have rules defined from {curState.name ?? "-"}
         </CardDescription>
         <CardContent className="flex flex-col gap-4 mt-4">
-          {[...states.values()]
-            .filter((state) => statesWithRule.has(state.id))
-            .sort((a, b) => a.id - b.id)
-            .map((state) => (
-              <div
-                key={state.id}
-                className={cn(
-                  "border rounded-3xl px-8 py-4 text-xl font-bold w-72 line-clamp-1 hover:bg-accent hover:cursor-pointer",
-                  {
-                    "bg-accent": curToState?.id === state.id,
-                  },
-                )}
-                onClick={() => setCurToState(state)}
-              >
-                {state.name}
-              </div>
-            ))}
+          {statesWithRule.map((state) => (
+            <div
+              key={state.id}
+              className={cn(
+                "border rounded-3xl px-8 py-4 text-xl font-bold w-72 line-clamp-1 hover:bg-accent hover:cursor-pointer",
+                {
+                  "bg-accent": curToState?.id === state.id,
+                },
+              )}
+              onClick={() => setCurToState(state)}
+            >
+              {state.name}
+            </div>
+          ))}
+          {statesWithRule.length === 0 ? (
+            <div className="flex flex-col">
+              <CubeIcon className="w-20 h-20 mx-auto" />
+              <p className="font-bold mx-auto">No states with defined rule</p>
+            </div>
+          ) : null}
         </CardContent>
         {curToState ? (
           <CardFooter>Editting {curToState.name}</CardFooter>
