@@ -25,6 +25,5 @@ public interface WorkflowRepository extends Repository<Workflow, Integer> {
       "SELECT w FROM Workflow w LEFT JOIN w.initialState WHERE w.id = :id AND w.clientId ="
           + " :clientId")
   @Transactional(readOnly = true)
-  Optional<Workflow> getByIdAndClientId(
-      @Param("id") Integer id, @Param("clientId") UUID clientId);
+  Optional<Workflow> getByIdAndClientId(@Param("id") Integer id, @Param("clientId") UUID clientId);
 }

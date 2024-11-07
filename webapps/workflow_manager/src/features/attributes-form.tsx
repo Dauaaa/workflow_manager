@@ -434,19 +434,15 @@ const textInputToFieldValue = (
       ret = { value };
       break;
     case "INTEGER":
-      ret = { value: !value ? undefined : BigInt(value.replace(/\D/g, "")) };
-      break;
     case "DECIMAL":
     case "FLOATING": {
       if (value) {
-        const valueNormalized = value.replace(/[^\d.]/g, "");
-
         try {
           if (attrType === "FLOATING") {
-            const v = Number(valueNormalized);
-            if (Number.isNaN(v)) throw "";
-            ret = { value: v };
-          } else ret = { value: new Decimal(valueNormalized) };
+            if (Number.isNaN(Number(value))) throw "";
+            ret = { value: Number(value) };
+          } else if (attrType === "INTEGER") ret = { value: BigInt(value) };
+          else ret = { value: new Decimal(value) };
         } catch {
           ret = { error: true };
         }
@@ -483,11 +479,10 @@ const TextField = observer(
       setStrValue(field.value?.toString() ?? "");
     }, [field.value, setStrValue]);
 
-    const attr = workflowStore.entityAttributes
+    const attr = workflowStore
+      .getAttributeMapByRefType(description.refType)
       .get(baseEntityId)
       ?.get(description.name);
-
-    console.log(attr, field.value);
 
     const disabled =
       attr?.[WorkflowAttributeTypePretty[description.attrType]] ===
@@ -496,6 +491,7 @@ const TextField = observer(
 
     const submit = () => {
       void form.handleSubmit((attr) => {
+        console.log({ description });
         void workflowStore.setAttribute({
           attr: attr as any,
           refType: description.refType,

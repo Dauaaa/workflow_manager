@@ -62,6 +62,10 @@ public class WorkflowAttribute {
       Integer baseEntityId,
       WorkflowAttributeReferenceType refType) {
     this.id = new WorkflowAttributeId(description, parentWorkflow, baseEntityId, refType);
+    this.update(attributeDTO);
+  }
+
+  public void update(NewWorkflowAttributeDTO attributeDTO) {
     this.setInteger(attributeDTO.integer);
     this.setFloating(attributeDTO.floating);
     this.setEnumeration(attributeDTO.enumeration);

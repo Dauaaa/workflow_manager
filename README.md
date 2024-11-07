@@ -35,15 +35,14 @@ Showcase some of my current developer skills and knowledge.
 - [x] configure change rules
     - [x] frontend
     - [x] backend
-- [ ] websocket integration
-    - [ ] frontend
-    - [ ] backend
+- [x] websocket integration
+    - [x] frontend
+    - [x] backend
 - [x] rabbitmq
     - [x] publisher (workflowmanager)
     - [x] consumer (websocket service)
 - [ ] redis message queue
 - [x] simple authorization
-- [ ] websocket and caching for the store
 - [ ] CEL
     - [ ] frontend
     - [ ] backend

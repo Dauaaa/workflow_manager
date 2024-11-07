@@ -25,6 +25,7 @@ import com.workflowmanager.app.repositories.WorkflowRepository;
 import com.workflowmanager.app.repositories.WorkflowStateRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
@@ -65,7 +66,8 @@ public class WorkflowStateController {
 
   @GetMapping("workflows/{workflowId}/workflow-states")
   @ResponseBody
-  public List<ResponseWorkflowState> listStates(@RequestHeader Map<String, String> headers, @PathVariable("workflowId") Integer workflowId) {
+  public List<ResponseWorkflowState> listStates(
+      @RequestHeader Map<String, String> headers, @PathVariable("workflowId") Integer workflowId) {
     AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     return this.workflowStateRepository
@@ -77,7 +79,9 @@ public class WorkflowStateController {
 
   @GetMapping("workflow-states/{workflowStateId}")
   @ResponseBody
-  public ResponseWorkflowState getState(@RequestHeader Map<String, String> headers, @PathVariable("workflowStateId") Integer workflowStateId) {
+  public ResponseWorkflowState getState(
+      @RequestHeader Map<String, String> headers,
+      @PathVariable("workflowStateId") Integer workflowStateId) {
     AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     return new ResponseWorkflowState(
@@ -102,7 +106,11 @@ public class WorkflowStateController {
     WorkflowState workflowState = new WorkflowState(dto, workflow);
     this.workflowStateRepository.save(workflowState);
 
-    ResponseWorkflowState ret = this.getState(headers, workflowState.getId());
+    ResponseWorkflowState ret =
+        new ResponseWorkflowState(
+            this.workflowStateRepository
+                .getByIdAndClientId(workflowState.getId(), auth.clientId)
+                .orElseThrow());
 
     Publisher.MessageBatch batch = this.publisher.batch();
 
@@ -145,7 +153,11 @@ public class WorkflowStateController {
 
     this.changeStateRulesRepository.save(rules);
 
-    ResponseWorkflowState ret = this.getState(headers, from.getId());
+    ResponseWorkflowState ret =
+        new ResponseWorkflowState(
+            this.workflowStateRepository
+                .getByIdAndClientId(from.getId(), auth.clientId)
+                .orElseThrow());
 
     Publisher.MessageBatch batch = this.publisher.batch();
 
@@ -182,13 +194,22 @@ public class WorkflowStateController {
 
     NewWorkflowAttributeDTO dto = new NewWorkflowAttributeDTO(request);
 
-    WorkflowAttribute attribute =
-        new WorkflowAttribute(
-            dto,
-            attributeDescription,
-            workflow,
-            stateId,
+    Optional<WorkflowAttribute> attributeOpt =
+        this.workflowAttributeRepository.getByBaseEntityAndDescriptionName(
+            state.getId(),
+            attributeDescription.getName(),
             WorkflowAttributeReferenceType.WORKFLOW_STATE);
+    attributeOpt.ifPresent(attribute -> attribute.update(dto));
+
+    WorkflowAttribute attribute =
+        attributeOpt.orElseGet(
+            () ->
+                new WorkflowAttribute(
+                    dto,
+                    attributeDescription,
+                    workflow,
+                    stateId,
+                    WorkflowAttributeReferenceType.WORKFLOW_STATE));
 
     this.workflowAttributeRepository.save(attribute);
 
@@ -205,7 +226,8 @@ public class WorkflowStateController {
 
     UUID eventId = UUID.randomUUID();
 
-    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth, eventId);
+    batch.add_to_batch(
+        ret, attributeDescription.getRefType(), Publisher.MessageType.UPDATE, auth, eventId);
 
     this.publisher.publish(batch);
 
@@ -214,7 +236,8 @@ public class WorkflowStateController {
 
   @GetMapping("workflow-states/{stateId}/attributes")
   @ResponseBody
-  public List<ResponseAttribute> listAttributes(@RequestHeader Map<String, String> headers, @PathVariable("stateId") Integer stateId) {
+  public List<ResponseAttribute> listAttributes(
+      @RequestHeader Map<String, String> headers, @PathVariable("stateId") Integer stateId) {
     AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     // authorize

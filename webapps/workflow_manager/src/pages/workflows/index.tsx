@@ -16,7 +16,9 @@ import { Link } from "react-router-dom";
 const WorkflowsPage = () => {
   const workflowStore = useWorkflowStore();
 
-  useEffect(() => void workflowStore.loadWorkflows(), [workflowStore]);
+  useEffect(() => {
+    void workflowStore.loadWorkflows();
+  }, [workflowStore]);
 
   return (
     <div className="min-h-[100vh] pt-64">

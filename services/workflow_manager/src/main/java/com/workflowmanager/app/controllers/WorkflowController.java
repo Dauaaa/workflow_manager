@@ -27,6 +27,7 @@ import com.workflowmanager.app.repositories.WorkflowRepository;
 import com.workflowmanager.app.repositories.WorkflowStateRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
@@ -64,7 +65,8 @@ public class WorkflowController {
 
   @GetMapping("workflows/{workflowId}")
   @ResponseBody
-  public ResponseWorkflow getWorkflow(@RequestHeader Map<String, String> headers, @PathVariable("workflowId") Integer workflowId) {
+  public ResponseWorkflow getWorkflow(
+      @RequestHeader Map<String, String> headers, @PathVariable("workflowId") Integer workflowId) {
     AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     return new ResponseWorkflow(
@@ -84,14 +86,20 @@ public class WorkflowController {
 
   @PostMapping("workflows")
   @ResponseBody
-  public ResponseEntity<ResponseWorkflow> createWorkflow(@RequestHeader Map<String, String> headers, @RequestBody RequestNewWorkflow newWorkflow) {
+  public ResponseEntity<ResponseWorkflow> createWorkflow(
+      @RequestHeader Map<String, String> headers, @RequestBody RequestNewWorkflow newWorkflow) {
     AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     NewWorkflowDTO dto = new NewWorkflowDTO(newWorkflow, auth);
     Workflow workflow = new Workflow(dto);
     this.workflowRepository.save(workflow);
 
-    ResponseWorkflow ret = this.getWorkflow(headers, workflow.getId());
+    ResponseWorkflow ret =
+        new ResponseWorkflow(
+            this.workflowRepository
+                .getByIdAndClientId(workflow.getId(), auth.clientId)
+                .orElseThrow());
+
     UUID eventId = UUID.randomUUID();
 
     Publisher.MessageBatch batch = this.publisher.batch();
@@ -132,7 +140,11 @@ public class WorkflowController {
 
     this.workflowRepository.save(workflow);
 
-    ResponseWorkflow ret = this.getWorkflow(headers, workflow.getId());
+    ResponseWorkflow ret =
+        new ResponseWorkflow(
+            this.workflowRepository
+                .getByIdAndClientId(workflow.getId(), auth.clientId)
+                .orElseThrow());
 
     Publisher.MessageBatch batch = this.publisher.batch();
 
@@ -189,8 +201,7 @@ public class WorkflowController {
   @GetMapping("workflows/{workflowId}/attribute-descriptions")
   @ResponseBody
   public List<ResponseAttributeDescription> listAttributeDescription(
-      @RequestHeader Map<String, String> headers,
-      @PathVariable("workflowId") Integer workflowId) {
+      @RequestHeader Map<String, String> headers, @PathVariable("workflowId") Integer workflowId) {
     AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     // authorize
@@ -222,13 +233,22 @@ public class WorkflowController {
 
     NewWorkflowAttributeDTO dto = new NewWorkflowAttributeDTO(request);
 
-    WorkflowAttribute attribute =
-        new WorkflowAttribute(
-            dto,
-            attributeDescription,
-            workflow,
-            workflowId,
+    Optional<WorkflowAttribute> attributeOpt =
+        this.workflowAttributeRepository.getByBaseEntityAndDescriptionName(
+            workflow.getId(),
+            attributeDescription.getName(),
             WorkflowAttributeReferenceType.WORKFLOW);
+    attributeOpt.ifPresent(attribute -> attribute.update(dto));
+
+    WorkflowAttribute attribute =
+        attributeOpt.orElseGet(
+            () ->
+                new WorkflowAttribute(
+                    dto,
+                    attributeDescription,
+                    workflow,
+                    workflowId,
+                    WorkflowAttributeReferenceType.WORKFLOW));
 
     this.workflowAttributeRepository.save(attribute);
 
@@ -245,7 +265,8 @@ public class WorkflowController {
 
     UUID eventId = UUID.randomUUID();
 
-    batch.add_to_batch(ret, Publisher.MessageType.UPDATE, auth, eventId);
+    batch.add_to_batch(
+        ret, attributeDescription.getRefType(), Publisher.MessageType.UPDATE, auth, eventId);
 
     this.publisher.publish(batch);
 
@@ -254,7 +275,8 @@ public class WorkflowController {
 
   @GetMapping("workflows/{workflowId}/attributes")
   @ResponseBody
-  public List<ResponseAttribute> listAttributes(@RequestHeader Map<String, String> headers, @PathVariable("workflowId") Integer workflowId) {
+  public List<ResponseAttribute> listAttributes(
+      @RequestHeader Map<String, String> headers, @PathVariable("workflowId") Integer workflowId) {
     AuthorizationDTO auth = new AuthorizationDTO(headers);
 
     // authorize

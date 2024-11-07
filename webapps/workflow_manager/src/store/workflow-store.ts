@@ -81,9 +81,14 @@ export class WorkflowStore {
         clientId,
         userId: isUuid(userId) ? userId : self.crypto.randomUUID(),
       });
+
+    this.wsWorkflowManager = new WorkflowManagerWebsocketClient(
+      this.onWsUpdate,
+    );
   }
 
-  public workflowManagerService: WorkflowManagerService;
+  private workflowManagerService: WorkflowManagerService;
+  private wsWorkflowManager: WorkflowManagerWebsocketClient;
   public workflows: Map<number, Workflow> = new Map();
   public workflowStates: Map<number, WorkflowState> = new Map();
   public workflowStatesByWorkflow: Map<number, Map<number, WorkflowState>> =
@@ -107,9 +112,29 @@ export class WorkflowStore {
   public entityAttributes: Map<number, Map<string, WorkflowAttribute>> =
     new Map();
 
+  public getAttributeMapByRefType = (
+    refType: WorkflowAttributeReferenceType,
+  ) => {
+    switch (refType) {
+      case "WORKFLOW":
+        return this.workflowAttributes;
+      case "WORKFLOW_STATE":
+        return this.stateAttributes;
+      case "WORKFLOW_ENTITY":
+        return this.entityAttributes;
+    }
+  };
+
   private authenticationInner: { current?: Authentication } = {};
 
   private seenEvents: Set<string> = new Set();
+
+  private subscriptions: {
+    main?: EntityReference;
+    minor: EntityReference[];
+  } = {
+    minor: [],
+  };
 
   public get authentication() {
     return this.authenticationInner;
@@ -130,7 +155,7 @@ export class WorkflowStore {
   }
 
   private clear() {
-    this.workflowManagerService.setAuthentication();
+    this.wsWorkflowManager.unsubscribeAll();
     this.workflows.clear();
     this.workflowStates.clear();
     this.workflowEntities.clear();
@@ -259,18 +284,22 @@ export class WorkflowStore {
   public loadAttributes = async (
     ...args: Parameters<WorkflowManagerService["getAttributes"]>
   ) => {
+    this.minorSubscription(args[0].baseEntityId, args[0].refType);
+
     const attrs = await this.workflowManagerService.getAttributes(...args);
 
     this.upsertAttributes(args[0].refType, attrs);
   };
 
   public loadWorkflow = async (workflowId: number) => {
+    this.mainSubscription(workflowId);
     const res = await this.workflowManagerService.getWorkflow(workflowId);
 
     this.upsertWorkflows([res]);
   };
 
   public loadWorkflows = async () => {
+    this.mainSubscription();
     const workflows = await this.workflowManagerService.listWorkflows();
 
     this.upsertWorkflows(workflows);
@@ -443,6 +472,83 @@ export class WorkflowStore {
       }
     }
   };
+
+  private onWsUpdate = (update: WebsocketUpdate) => {
+    if (update.clientId !== this.authentication.current?.clientId) return;
+
+    switch (update.objType) {
+      case "ResponseWorkflow": {
+        this.upsertWorkflows([update.obj]);
+        return;
+      }
+      case "ResponseWorkflowState": {
+        this.upsertStates([update.obj]);
+        return;
+      }
+      case "ResponseWorkflowEntity": {
+        this.upsertEntities([update.obj]);
+        return;
+      }
+      case "ResponseAttributeDescription": {
+        this.upsertAttributeDescriptions(update.obj.parentWorkflowId, [
+          update.obj,
+        ]);
+        return;
+      }
+      case "ResponseAttribute": {
+        this.upsertAttributes(update.refType, [update.obj]);
+        return;
+      }
+    }
+  };
+
+  private mainSubscription = (workflowId?: number) => {
+    if (!this.authentication.current?.clientId) {
+      this.wsWorkflowManager.unsubscribeAll();
+      return;
+    }
+
+    const sub: EntityReference = {
+      baseEntityId: workflowId,
+      clientId: this.authentication.current?.clientId,
+      entitySubscriptionType: "WORKFLOW",
+    };
+
+    if (
+      this.subscriptions.main &&
+      this.subscriptions.main.baseEntityId !== workflowId
+    ) {
+      this.wsWorkflowManager.unsubscribe([
+        this.subscriptions.main,
+        ...this.subscriptions.minor,
+      ]);
+    }
+
+    this.wsWorkflowManager.subscribe([sub]);
+    this.subscriptions.main = sub;
+  };
+
+  private minorSubscription = (
+    baseEntityId: number,
+    refType: WorkflowAttributeReferenceType,
+  ) => {
+    if (!this.authentication.current?.clientId) {
+      this.wsWorkflowManager.unsubscribeAll();
+      return;
+    }
+
+    if (this.subscriptions.minor.length > 5)
+      this.wsWorkflowManager.unsubscribe([this.subscriptions.minor.shift()!]);
+
+    const sub: EntityReference = {
+      baseEntityId,
+      clientId: this.authentication.current.clientId,
+      entitySubscriptionType: refType,
+      attr: true,
+    };
+    this.wsWorkflowManager.subscribe([sub]);
+    this.subscriptions.minor.push(sub);
+  };
 }
 
 // TODO: all methods throw on error right now.
@@ -549,7 +655,6 @@ class WorkflowManagerService {
     attributeName: string;
   }) => {
     let response;
-    console.log({ attr });
     switch (refType) {
       case "WORKFLOW": {
         response = await this.client.PUT(
@@ -565,6 +670,7 @@ class WorkflowManagerService {
             headers: this.getHeaders(),
           },
         );
+        break;
       }
       case "WORKFLOW_STATE": {
         response = await this.client.PUT(
@@ -580,6 +686,7 @@ class WorkflowManagerService {
             headers: this.getHeaders(),
           },
         );
+        break;
       }
       case "WORKFLOW_ENTITY": {
         response = await this.client.PUT(
@@ -595,6 +702,7 @@ class WorkflowManagerService {
             headers: this.getHeaders(),
           },
         );
+        break;
       }
     }
 
@@ -855,8 +963,6 @@ class WorkflowManagerService {
   };
 
   public constructor(client?: ReturnType<typeof createClient<paths>>) {
-    console.log({ url: import.meta.env.VITE_WORKFLOW_MANAGER_BASE_URL });
-
     this.client =
       client ??
       createClient<paths>({
@@ -1144,4 +1250,141 @@ export module parsers {
       >
     >,
   ];
+}
+
+type EntitySubscriptionType = WorkflowAttributeReferenceType;
+
+interface EntityReference {
+  baseEntityId?: number;
+  clientId: string;
+  entitySubscriptionType: EntitySubscriptionType;
+  attr?: boolean;
+}
+
+const MESSAGE_TYPES = ["UPDATE"] as const;
+
+type WebsocketUpdate = z.infer<typeof WebsocketUpdateSchema>;
+const WebsocketUpdateSchema = z.preprocess(
+  (obj) => {
+    if (typeof obj !== "string") return z.NEVER;
+    try {
+      return JSON.parse(obj);
+    } catch {
+      return z.NEVER;
+    }
+  },
+  z
+    .object({
+      msgType: z.enum(MESSAGE_TYPES),
+      refType: z.enum(WORKFLOW_ATTRIBUTE_REFERENCE_TYPES),
+      baseEntityId: z.number(),
+      clientId: z.string().uuid(),
+      userId: z.string().uuid(),
+      eventId: z.string().uuid(),
+    })
+    .and(
+      z
+        .object({
+          obj: parsers.WorkflowSchema,
+          objType: z.literal("ResponseWorkflow"),
+        })
+        .or(
+          z.object({
+            obj: parsers.WorkflowStateSchema,
+            objType: z.literal("ResponseWorkflowState"),
+          }),
+        )
+        .or(
+          z.object({
+            obj: parsers.WorkflowEntitySchema,
+            objType: z.literal("ResponseWorkflowEntity"),
+          }),
+        )
+        .or(
+          z.object({
+            obj: parsers.WorkflowAttributeSchema,
+            objType: z.literal("ResponseAttribute"),
+          }),
+        )
+        .or(
+          z.object({
+            obj: parsers.WorkflowAttributeDescriptionSchema,
+            objType: z.literal("ResponseAttributeDescription"),
+          }),
+        ),
+    ),
+);
+
+const referencesToKeyString = (references: EntityReference[]) => {
+  const keys = [];
+
+  for (const reference of references) {
+    const keyParts = [reference.clientId, reference.entitySubscriptionType];
+    if (reference.baseEntityId)
+      keyParts.push(reference.baseEntityId.toString());
+    if (reference.attr) keyParts.push("attr");
+
+    keys.push(keyParts.join(":"));
+  }
+
+  return keys.join(";");
+};
+
+class WorkflowManagerWebsocketClient {
+  public subscribe = (references: EntityReference[]) => {
+    console.log({ references });
+    this.socket.send("S " + referencesToKeyString(references));
+  };
+
+  public unsubscribe = (references: EntityReference[]) => {
+    this.socket.send("D " + referencesToKeyString(references));
+  };
+
+  public unsubscribeAll = () => {
+    this.socket.send("D D");
+  };
+
+  public constructor(onUpdate: (arg: WebsocketUpdate) => void) {
+    // will connect in method this.connect(), this is just for typescript...
+    this.onUpdate = onUpdate;
+    this.socket = undefined as unknown as WebSocket;
+
+    this.connect();
+  }
+
+  private connect() {
+    this.socket = new WebSocket(import.meta.env.VITE_WORKFLOW_MANAGER_WS_URL);
+
+    this.socket.onopen = () => {
+      console.log("CONNECTED TO WS!");
+      this.ping();
+    };
+
+    this.socket.onmessage = (e) => {
+      if (e.data === "pong") {
+        clearTimeout(this.pingTimeout);
+        setTimeout(() => this.ping(), 10000);
+        return;
+      }
+
+      this.onUpdate(WebsocketUpdateSchema.parse(e.data));
+    };
+  }
+
+  private ping = () => {
+    this.socket.send("ping");
+
+    this.pingTimeout = setTimeout(() => {
+      // pong expired, try to connect again
+
+      console.warn("Socket expired!");
+
+      this.socket.close();
+      this.connect();
+    }, 30000);
+  };
+
+  private socket: WebSocket;
+  private pingTimeout?: ReturnType<typeof setTimeout>;
+  private onUpdate;
 }

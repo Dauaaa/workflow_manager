@@ -10,7 +10,7 @@ public class AuthorizationDTO {
   private Instant creationTime;
 
   public Instant getCreationTime() {
-      return this.creationTime;
+    return this.creationTime;
   }
 
   public AuthorizationDTO(Map<String, String> headers) {
