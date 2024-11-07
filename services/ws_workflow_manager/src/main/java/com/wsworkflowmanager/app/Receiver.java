@@ -14,6 +14,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -38,9 +39,19 @@ public class Receiver extends TextWebSocketHandler {
   private final Map<String, WebSocketSession> connections = new ConcurrentHashMap<>();
 
   // Map to store (entity type, entity id) -> set of connection IDs
+  // key -> Set<entityId>
   private final Map<String, Set<String>> entityConnections = new ConcurrentHashMap<>();
+  // entityId -> Set<key>
   private final Map<String, Set<String>> entityConnectionsInv = new ConcurrentHashMap<>();
   private final PongManager pongManager = new PongManager(this.connections);
+  private final EventRegistry eventRegistry;
+
+  private final StringRedisTemplate redisTemplate;
+
+  public Receiver(StringRedisTemplate redisTemplate) {
+    this.redisTemplate = redisTemplate;
+    this.eventRegistry = new EventRegistry(this.redisTemplate, this.entityConnections);
+  }
 
   @Override
   public void afterConnectionEstablished(WebSocketSession session) {
@@ -88,11 +99,21 @@ public class Receiver extends TextWebSocketHandler {
     } else if (command.equals("S")) {
       String[] keysToSubscribe = arg.split(";");
 
+      List<String> keys = new ArrayList<>();
+
       for (String key : keysToSubscribe) {
         this.entityConnections.computeIfAbsent(key, k -> new HashSet()).add(sessionId);
         this.entityConnectionsInv.computeIfAbsent(sessionId, k -> new HashSet()).add(key);
-        // TODO: send entity's history
+
+        keys.addLast(key);
       }
+
+      for (String key : keys)
+        for (String event : this.eventRegistry.getRecentEvents(key)) {
+          WebSocketSession session = this.connections.get(sessionId);
+
+          this.sendMessage(session, event);
+        }
     }
   }
 
@@ -107,7 +128,9 @@ public class Receiver extends TextWebSocketHandler {
   @RabbitListener(queues = App.registerQueueName)
   public void receiveMessageRegister(String message) {
     System.out.println("REGISTER: Received <" + message + ">");
-    // TODO implement redis stuff
+    RabbitMessage parsedMessage = new RabbitMessage(message);
+
+    for (String key : parsedMessage.keys) this.eventRegistry.addEvent(key, parsedMessage.payload);
   }
 
   @RabbitListener(queues = App.notifyQueueName)
@@ -125,13 +148,17 @@ public class Receiver extends TextWebSocketHandler {
 
     for (String connId : connIds) {
       WebSocketSession session = connections.get(connId);
-      if (session != null && session.isOpen()) {
-        try {
-          session.sendMessage(new TextMessage(parsedMessage.payload.translateEscapes()));
-        } catch (Exception e) {
-          // TODO: Handle or log exception
-          e.printStackTrace();
-        }
+      this.sendMessage(session, parsedMessage.payload);
+    }
+  }
+
+  private void sendMessage(WebSocketSession session, String message) {
+    if (session != null && session.isOpen()) {
+      try {
+        session.sendMessage(new TextMessage(message.translateEscapes()));
+      } catch (Exception e) {
+        // TODO: Handle or log exception
+        e.printStackTrace();
       }
     }
   }
@@ -241,6 +268,44 @@ public class Receiver extends TextWebSocketHandler {
     public Pong(String sessionId) {
       this.sessionId = sessionId;
       this.timestamp = Instant.now();
+    }
+  }
+
+  class EventRegistry {
+    private StringRedisTemplate redisTemplate;
+    private static final long TTL_SECONDS = 30;
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private final Map<String, Set<String>> entityConnections;
+
+    public EventRegistry(
+        StringRedisTemplate redisTemplate, Map<String, Set<String>> entityConnectionsInv) {
+      this.redisTemplate = redisTemplate;
+      this.entityConnections = entityConnectionsInv;
+
+      this.executor.scheduleAtFixedRate(this::clearStale, 180, 180, TimeUnit.SECONDS);
+    }
+
+    private void clearStale() {
+      long thirtySecondsAgo = Instant.now().getEpochSecond() - 30;
+      for (String key : this.entityConnections.keySet()) {
+        redisTemplate.opsForZSet().removeRangeByScore(key, 0, thirtySecondsAgo);
+      }
+    }
+
+    public void addEvent(String key, String element) {
+      long timestamp = Instant.now().getEpochSecond();
+
+      // add event to sorted set with timestamp as score
+      redisTemplate.opsForZSet().add(key, element, timestamp);
+
+      redisTemplate.expire(key, TTL_SECONDS, java.util.concurrent.TimeUnit.SECONDS);
+    }
+
+    public Set<String> getRecentEvents(String key) {
+      long max = Instant.now().getEpochSecond() + 60; // max in future guarantees get all events
+      long min = max - 90;
+
+      return redisTemplate.opsForZSet().rangeByScore(key, min, max);
     }
   }
 }

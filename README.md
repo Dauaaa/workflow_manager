@@ -41,7 +41,7 @@ Showcase some of my current developer skills and knowledge.
 - [x] rabbitmq
     - [x] publisher (workflowmanager)
     - [x] consumer (websocket service)
-- [ ] redis message queue
+- [x] redis message queue
 - [x] simple authorization
 - [ ] CEL
     - [ ] frontend

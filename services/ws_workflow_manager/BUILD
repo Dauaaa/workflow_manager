@@ -18,6 +18,7 @@ java_library(
         "@maven//:org_springframework_boot_spring_boot_starter_web",
         "@maven//:org_springframework_boot_spring_boot_starter_validation",
         "@maven//:org_springframework_boot_spring_boot_starter_websocket",
+        "@maven//:org_springframework_boot_spring_boot_starter_data_redis",
         "@maven//:org_springframework_spring_messaging",
         "@maven//:org_springframework_spring_web",
         "@maven//:org_zalando_problem_spring_web_starter",
@@ -45,6 +46,7 @@ java_library(
         "@maven//:org_springframework_spring_websocket",
         "@maven//:org_springframework_amqp_spring_amqp",
         "@maven//:org_springframework_amqp_spring_rabbit",
+        "@maven//:org_springframework_data_spring_data_redis",
     ],
 )
 

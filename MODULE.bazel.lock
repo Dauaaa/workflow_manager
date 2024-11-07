@@ -1120,7 +1120,7 @@
     "@@rules_jvm_external~//:extensions.bzl%maven": {
       "general": {
         "bzlTransitiveDigest": "057b0l5jZBUCBsBt/ud9eiIsDKg9FwPwuNf3sMqBcxM=",
-        "usagesDigest": "zWz7eVUs3mxxsY20EASMtadIWEFNL2hXqTM/lcTuFH8=",
+        "usagesDigest": "PGjd4iJ+WZt7GN3QTSnN0fmoBjvCd00jfNbeGAkKhbA=",
         "recordedFileInputs": {
           "@@stardoc~//maven_install.json": "de0bfa778b4ed6aebb77509362dd87ab8d20fc7c7c18d2a7429cdfee03949a21",
           "@@rules_jvm_external~//rules_jvm_external_deps_install.json": "741ab2ef3843a43eaacb45d1448835c9deb99c95162279f513096eface8acd44"
@@ -2054,6 +2054,7 @@
                 "{ \"group\": \"org.springframework.boot\", \"artifact\": \"spring-boot-starter-validation\", \"version\": \"3.3.4\" }",
                 "{ \"group\": \"org.springframework.boot\", \"artifact\": \"spring-boot-starter-websocket\", \"version\": \"3.3.4\" }",
                 "{ \"group\": \"org.springframework.boot\", \"artifact\": \"spring-boot-starter-amqp\", \"version\": \"3.3.4\" }",
+                "{ \"group\": \"org.springframework.boot\", \"artifact\": \"spring-boot-starter-data-redis\", \"version\": \"3.3.4\" }",
                 "{ \"group\": \"org.zalando\", \"artifact\": \"problem-spring-web-starter\", \"version\": \"0.29.1\" }",
                 "{ \"group\": \"org.springdoc\", \"artifact\": \"springdoc-openapi-starter-webmvc-ui\", \"version\": \"2.6.0\" }",
                 "{ \"group\": \"jakarta.persistence\", \"artifact\": \"jakarta.persistence-api\", \"version\": \"3.1.0\" }",
