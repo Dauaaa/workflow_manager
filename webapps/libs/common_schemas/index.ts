@@ -19,3 +19,4 @@ export type Equal<X, Y> =
   (<T>() => T extends X ? 1 : 2) extends
   (<T>() => T extends Y ? 1 : 2) ? true : false;
 export type Extends<X, Y> = X extends Y ? true : false;
+export type Defined<T> = T extends (infer U) | undefined ? U : never;
