@@ -75,16 +75,16 @@ export class WorkflowStore {
     const isUuid = (s: string | null): s is string =>
       s ? z.string().uuid().safeParse(s).success : false;
 
+    this.wsWorkflowManager = new WorkflowManagerWebsocketClient(
+      this.onWsUpdate,
+    );
+
     if (!isUuid(clientId)) this.setAuthentication();
     else
       this.setAuthentication({
         clientId,
         userId: isUuid(userId) ? userId : self.crypto.randomUUID(),
       });
-
-    this.wsWorkflowManager = new WorkflowManagerWebsocketClient(
-      this.onWsUpdate,
-    );
   }
 
   private workflowManagerService: WorkflowManagerService;
@@ -411,7 +411,7 @@ export class WorkflowStore {
     refType: WorkflowAttributeReferenceType,
     attrs: WorkflowAttribute[],
   ) => {
-    let attrMapMyBaseEntityId;
+    let attrMapMyBaseEntityId: typeof this["workflowAttributes"];
     switch (refType) {
       case "WORKFLOW": {
         attrMapMyBaseEntityId = this.workflowAttributes;
@@ -1316,7 +1316,7 @@ const WebsocketUpdateSchema = z.preprocess(
 );
 
 const referencesToKeyString = (references: EntityReference[]) => {
-  const keys = [];
+  const keys: string[] = [];
 
   for (const reference of references) {
     const keyParts = [reference.clientId, reference.entitySubscriptionType];
@@ -1332,16 +1332,15 @@ const referencesToKeyString = (references: EntityReference[]) => {
 
 class WorkflowManagerWebsocketClient {
   public subscribe = (references: EntityReference[]) => {
-    console.log({ references });
-    this.socket.send("S " + referencesToKeyString(references));
+    this.dispatchSend("S " + referencesToKeyString(references));
   };
 
   public unsubscribe = (references: EntityReference[]) => {
-    this.socket.send("D " + referencesToKeyString(references));
+    this.dispatchSend("D " + referencesToKeyString(references));
   };
 
   public unsubscribeAll = () => {
-    this.socket.send("D D");
+    this.dispatchSend("D D");
   };
 
   public constructor(onUpdate: (arg: WebsocketUpdate) => void) {
@@ -1356,8 +1355,8 @@ class WorkflowManagerWebsocketClient {
     this.socket = new WebSocket(import.meta.env.VITE_WORKFLOW_MANAGER_WS_URL);
 
     this.socket.onopen = () => {
-      console.log("CONNECTED TO WS!");
       this.ping();
+      this.flushMessageBuffer();
     };
 
     this.socket.onmessage = (e) => {
@@ -1377,12 +1376,25 @@ class WorkflowManagerWebsocketClient {
     this.pingTimeout = setTimeout(() => {
       // pong expired, try to connect again
 
-      console.warn("Socket expired!");
-
       this.socket.close();
       this.connect();
     }, 30000);
   };
+
+  private dispatchSend = (message: string) => {
+    if (this.socket.readyState !== WebSocket.OPEN)
+      this.messageBuffer.push(message);
+    else this.socket.send(message);
+  };
+
+  private flushMessageBuffer = () => {
+    while (this.messageBuffer.length > 0) {
+      if (this.socket.readyState === WebSocket.OPEN)
+        this.socket.send(this.messageBuffer.shift()!);
+    }
+  };
+
+  private messageBuffer: string[] = [];
 
   private socket: WebSocket;
   private pingTimeout?: ReturnType<typeof setTimeout>;

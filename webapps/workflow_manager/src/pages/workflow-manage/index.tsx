@@ -18,7 +18,7 @@ import {
 import { CubeIcon, GearIcon } from "@radix-ui/react-icons";
 import { makeAutoObservable } from "mobx";
 import { observer } from "mobx-react-lite";
-import { useEffect, useState, createContext, useContext } from "react";
+import * as React from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -61,9 +61,11 @@ class PageStore {
   }
 }
 
-const usePageStore = () => useState(new PageStore())[0];
+const usePageStore = () => React.useState(new PageStore())[0];
 
-const PageContext = createContext<PageStore>(null as unknown as PageStore);
+const PageContext = React.createContext<PageStore>(
+  null as unknown as PageStore,
+);
 
 const WorkflowManagePage = observer(() => {
   const { workflowId } = useParams();
@@ -75,7 +77,7 @@ const WorkflowManagePage = observer(() => {
 
   const workflowStore = useWorkflowStore();
 
-  useEffect(() => {
+  React.useEffect(() => {
     void workflowStore.loadWorkflow(workflowIdN);
     void workflowStore.loadStates(workflowIdN);
   }, [workflowStore]);
@@ -97,7 +99,7 @@ const WorkflowManagePage = observer(() => {
 
 const WorkflowTitle = observer(({ workflowId }: { workflowId: number }) => {
   const workflowStore = useWorkflowStore();
-  const pageStore = useContext(PageContext);
+  const pageStore = React.useContext(PageContext);
 
   const workflow = workflowStore.workflows.get(workflowId);
 
@@ -145,10 +147,10 @@ const StateCollapserList = observer(
 
 const StateCollapser = observer(
   ({ state, isStarting }: { state: WorkflowState; isStarting?: boolean }) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = React.useState(false);
 
     const workflowStore = useWorkflowStore();
-    const pageStore = useContext(PageContext);
+    const pageStore = React.useContext(PageContext);
     const drawerContext = pageStore.drawerContext.current;
 
     if (drawerContext && drawerContext.refType === "WORKFLOW_ENTITY") {
@@ -199,7 +201,7 @@ const StateCollapser = observer(
 const EntityList = observer(({ stateId }: { stateId: number }) => {
   const workflowStore = useWorkflowStore();
 
-  useEffect(() => {
+  React.useEffect(() => {
     void workflowStore.loadState(stateId);
     void workflowStore.loadEntitiesByState(stateId);
   }, [workflowStore]);
@@ -236,7 +238,7 @@ const EntityEntry = ({
   entity: WorkflowEntity;
   isLast?: boolean;
 }) => {
-  const pageStore = useContext(PageContext);
+  const pageStore = React.useContext(PageContext);
 
   return (
     <div
@@ -252,7 +254,7 @@ const EntityEntry = ({
 };
 
 const AttributeSheet = observer(() => {
-  const pageStore = useContext(PageContext);
+  const pageStore = React.useContext(PageContext);
   const workflowStore = useWorkflowStore();
 
   const ctx = pageStore.drawerContext.current;

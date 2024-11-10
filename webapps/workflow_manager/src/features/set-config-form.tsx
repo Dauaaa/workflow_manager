@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { observer } from "mobx-react-lite";
+import "react";
 
 const FormSchema = z.object({
   initialStateId: z.coerce.number().nullish(),
@@ -83,46 +84,41 @@ const SetConfigFormInner = observer(
           <FormField
             control={form.control}
             name="initialStateId"
-            render={({ field }) =>
-              (() => {
-                console.log(field);
-                return false;
-              })() || (
-                <FormItem>
-                  <FormLabel>Initial state for the workflow</FormLabel>
-                  <FormControl>
-                    <Select
-                      {...field}
-                      onValueChange={field.onChange}
-                      value={
-                        !field.value && field.value !== 0
-                          ? undefined
-                          : field.value.toString()
-                      }
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Pick a state" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>States</SelectLabel>
-                          {states.map((state) => (
-                            <SelectItem
-                              key={state.id}
-                              value={state.id.toString()}
-                              className="font-mono"
-                            >
-                              {state.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )
-            }
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Initial state for the workflow</FormLabel>
+                <FormControl>
+                  <Select
+                    {...field}
+                    onValueChange={field.onChange}
+                    value={
+                      !field.value && field.value !== 0
+                        ? undefined
+                        : field.value.toString()
+                    }
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Pick a state" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>States</SelectLabel>
+                        {states.map((state) => (
+                          <SelectItem
+                            key={state.id}
+                            value={state.id.toString()}
+                            className="font-mono"
+                          >
+                            {state.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
           {buttonOverride ?? <Button type="submit">Submit</Button>}
         </form>

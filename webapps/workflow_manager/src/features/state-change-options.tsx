@@ -2,6 +2,7 @@ import { useWorkflowStore } from "@/store/context";
 import { ChangeStateRule, WorkflowState } from "@/store/workflow-store";
 import { CubeIcon } from "@radix-ui/react-icons";
 import { observer } from "mobx-react-lite";
+import "react";
 
 export const StateChangeOptions = observer(
   ({ workflowId, entityId }: { workflowId: number; entityId: number }) => {

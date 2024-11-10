@@ -42,11 +42,8 @@ const WorkflowList = observer(() => {
   return (
     <div className="flex flex-wrap w-full gap-4">
       {workflows.map((workflow) => (
-        <Link to={workflow.id.toString()}>
-          <Card
-            key={workflow.id}
-            className="w-48 h-48 text-accent-foreground rounded-3xl flex flex-col justify-between hover:bg-accent"
-          >
+        <Link to={workflow.id.toString()} key={workflow.id}>
+          <Card className="w-48 h-48 text-accent-foreground rounded-3xl flex flex-col justify-between hover:bg-accent">
             <CardTitle className="pl-4 pt-4 font-semibold text-xl font-mono line-clamp-2">
               {workflow.name}
             </CardTitle>

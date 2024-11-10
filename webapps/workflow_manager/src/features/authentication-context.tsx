@@ -20,6 +20,7 @@ import { UpdateIcon } from "@radix-ui/react-icons";
 import { observer } from "mobx-react-lite";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import "react";
 
 const AuthenticationSchema = z.object({
   clientId: z.string().uuid({

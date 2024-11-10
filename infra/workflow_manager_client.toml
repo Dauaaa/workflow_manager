@@ -1,0 +1,35 @@
+app = "workflow-manager-client"
+primary_region = "mia"
+kill_timeout = 10
+
+build.image = "registry.fly.io/workflow-manager-client:latest"
+
+[http_service]
+internal_port = 8080
+force_https = true
+auto_stop_machines = "off"
+auto_start_machines = false
+# startup is so slow, this is probably necessary
+min_machines_running = 1
+
+[http_service.concurrency]
+type = "requests"
+soft_limit = 200
+hard_limit = 250
+
+[[http_service.checks]]
+grace_period = "10s"
+interval = "60s"
+method = "GET"
+timeout = "5s"
+path = "/health"
+
+[deploy]
+strategy = "immediate"
+
+[[vm]]
+size = "shared-cpu-1x"
+memory = "1gb"
+cpus = 1
+cpu_kind = "shared"
+processes = ["app"]

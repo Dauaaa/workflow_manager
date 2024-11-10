@@ -1,9 +1,12 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import * as React from "react";
 import { AuthenticationDisplay } from "./features/authentication-display";
+import { WorkflowStoreProvider } from "./store/context";
+import { AuthenticationContext } from "./features/authentication-context";
+import { ThemeProvider } from "./components/theme-provider";
 
-const WorkflowsPage = lazy(() => import("./pages/workflows"));
-const WorkflowManagePage = lazy(() => import("./pages/workflow-manage"));
+const WorkflowsPage = React.lazy(() => import("./pages/workflows"));
+const WorkflowManagePage = React.lazy(() => import("./pages/workflow-manage"));
 
 export const workflowManagerRouter: ReturnType<typeof createBrowserRouter> =
   createBrowserRouter([
@@ -17,26 +20,29 @@ export const workflowManagerRouter: ReturnType<typeof createBrowserRouter> =
         {
           path: "workflows",
           element: (
-            <div>
-              <Outlet />
-              <AuthenticationDisplay />
-            </div>
+            <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+              <WorkflowStoreProvider>
+                <AuthenticationContext />
+                <Outlet />
+                <AuthenticationDisplay />
+              </WorkflowStoreProvider>
+            </ThemeProvider>
           ),
           children: [
             {
               index: true,
               element: (
-                <Suspense>
+                <React.Suspense>
                   <WorkflowsPage />
-                </Suspense>
+                </React.Suspense>
               ),
             },
             {
               path: ":workflowId",
               element: (
-                <Suspense>
+                <React.Suspense>
                   <WorkflowManagePage />
-                </Suspense>
+                </React.Suspense>
               ),
             },
           ],

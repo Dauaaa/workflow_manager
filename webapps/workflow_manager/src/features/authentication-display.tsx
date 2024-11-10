@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useWorkflowStore } from "@/store/context";
 import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
+import * as React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export const AuthenticationDisplay = observer(() => {
@@ -11,7 +11,7 @@ export const AuthenticationDisplay = observer(() => {
 
   const auth = workflowStore.authentication.current;
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!auth && pathname !== "/workflows") navigate("/workflows");
   }, [auth, navigate, pathname]);
 

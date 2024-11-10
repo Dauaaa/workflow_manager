@@ -1,0 +1,43 @@
+app = "ws-workflow-manager"
+primary_region = "mia"
+kill_timeout = 10
+
+build.image = "registry.fly.io/ws-workflow-manager:latest"
+
+[env]
+REDIS_USER="default"
+REDIS_HOST="workflow-manager-redis.internal"
+REDIS_PORT=6379
+RABBITMQ_HOST="workflow-manager-rabbit.internal"
+RABBITMQ_PORT=5672
+RABBITMQ_USER="guest"
+
+[[services]]
+internal_port = 8080
+protocol = "tcp"
+
+[services.concurrency]
+hard_limit = 25
+soft_limit = 20
+
+[[services.ports]]
+handlers = ["http"]
+port = "80"
+
+[[services.ports]]
+handlers = ["tls", "http"]
+port = "443"
+
+[[services.tcp_checks]]
+interval = 10000
+timeout = 2000
+
+[deploy]
+strategy = "immediate"
+
+[[vm]]
+size = "shared-cpu-1x"
+memory = "1gb"
+cpus = 1
+cpu_kind = "shared"
+processes = ["app"]

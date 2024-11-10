@@ -31,7 +31,7 @@ import { parsers, WorkflowState } from "@/store/workflow-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CubeIcon, TrashIcon } from "@radix-ui/react-icons";
 import { observer } from "mobx-react-lite";
-import { useEffect, useState } from "react";
+import * as React from "react";
 import { useFieldArray, useForm, UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 
@@ -48,7 +48,9 @@ export const ChangeStateRulesForm = observer(
 
     const states = workflowStore.workflowStatesByWorkflow.get(workflowId);
     const curState = states ? states.get(stateId) : undefined;
-    const [curToState, setCurToState] = useState<WorkflowState | undefined>();
+    const [curToState, setCurToState] = React.useState<
+      WorkflowState | undefined
+    >();
 
     return (
       <div className="flex flex-col font-mono gap-4 w-full">
@@ -141,7 +143,7 @@ const EditChangeRuleForm = observer(
       },
     });
 
-    useEffect(() => {
+    React.useEffect(() => {
       if (curToState && form.getValues().toId !== curToState.id) {
         form.setValue("toId", curToState.id);
       }
@@ -149,7 +151,7 @@ const EditChangeRuleForm = observer(
 
     const toStateId = form.watch("toId");
 
-    useEffect(() => {
+    React.useEffect(() => {
       setCurToState(workflowStore.workflowStates.get(toStateId));
       form.setValue(
         "expressions",

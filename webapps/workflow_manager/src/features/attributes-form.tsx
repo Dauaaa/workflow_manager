@@ -35,7 +35,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { UpdateIcon } from "@radix-ui/react-icons";
 import Decimal from "decimal.js";
 import { observer } from "mobx-react-lite";
-import { useEffect, useLayoutEffect, useState } from "react";
+import * as React from "react";
 import { ControllerRenderProps, useForm, UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -57,7 +57,7 @@ export const AttributesForm = observer(
   }) => {
     const workflowStore = useWorkflowStore();
 
-    useEffect(() => {
+    React.useEffect(() => {
       void workflowStore.loadAttributeDescriptions(workflowId);
       void workflowStore.loadAttributes({
         workflowId,
@@ -288,7 +288,7 @@ const AttrField = observer((props: CommonAttributeFormFieldProps) => {
   const curValue =
     attr?.[WorkflowAttributeTypePretty[props.description.attrType]];
 
-  useEffect(() => {
+  React.useEffect(() => {
     props.form.setValue(
       WorkflowAttributeTypePretty[props.description.attrType],
       curValue,
@@ -391,7 +391,7 @@ const FlagField = ({
   const value = form.watch("flag");
   const workflowStore = useWorkflowStore();
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (attr?.flag !== value)
       void form.handleSubmit((attr) => {
         workflowStore.setAttribute({
@@ -473,9 +473,11 @@ const TextField = observer(
     >;
   }) => {
     const workflowStore = useWorkflowStore();
-    const [strValue, setStrValue] = useState(field.value?.toString() ?? "");
+    const [strValue, setStrValue] = React.useState(
+      field.value?.toString() ?? "",
+    );
 
-    useLayoutEffect(() => {
+    React.useLayoutEffect(() => {
       setStrValue(field.value?.toString() ?? "");
     }, [field.value, setStrValue]);
 
@@ -491,7 +493,6 @@ const TextField = observer(
 
     const submit = () => {
       void form.handleSubmit((attr) => {
-        console.log({ description });
         void workflowStore.setAttribute({
           attr: attr as any,
           refType: description.refType,
@@ -543,7 +544,7 @@ const EnumField = ({
   const value = form.watch("enumeration");
   const workflowStore = useWorkflowStore();
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (attr?.enumeration !== value)
       void form.handleSubmit((attr) => {
         workflowStore.setAttribute({

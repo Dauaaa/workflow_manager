@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useWorkflowStore } from "@/store/context";
+import "react";
 
 const FormSchema = z.object({
   name: z

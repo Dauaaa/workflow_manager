@@ -1,0 +1,26 @@
+app = "workflow-manager-redis"
+primary_region = "mia"
+kill_timeout = 10
+
+build.image = "redis:8.0-M02-bookworm"
+
+[env]
+
+# rabbitmq main
+[[services]]
+internal_port = 6379
+protocol = "tcp"
+
+[[services.tcp_checks]]
+grace_period = "1s"
+interval = "15s"
+restart_limit = 0
+timeout = "60s"
+
+[[vm]]
+size = "shared-cpu-1x"
+memory = "1gb"
+cpus = 1
+cpu_kind = "shared"
+processes = ["app"]
+

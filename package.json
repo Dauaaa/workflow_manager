@@ -34,7 +34,8 @@
     "dependencies": {
         "openapi-fetch": "^0.12.2",
         "openapi-react-query": "^0.2.0",
-        "postcss-cli": "^11.0.0"
+        "postcss-cli": "^11.0.0",
+        "tsconfig-to-swcconfig": "^2.8.1"
     },
     "devDependencies": {
         "@bazel/ibazel": "0.25.0",

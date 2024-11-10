@@ -4,7 +4,7 @@ bazel_dep(name = "aspect_bazel_lib", version = "2.8.1")
 bazel_dep(name = "aspect_rules_lint", version = "1.0.0-rc4")
 bazel_dep(name = "aspect_rules_jest", version = "0.22.0")
 bazel_dep(name = "aspect_rules_js", version = "2.0.2")
-bazel_dep(name = "aspect_rules_swc", version = "2.0.0")
+bazel_dep(name = "aspect_rules_swc", version = "2.0.1")
 bazel_dep(name = "aspect_rules_ts", version = "3.1.0")
 bazel_dep(name = "aspect_rules_rollup", version = "2.0.0")
 bazel_dep(name = "aspect_rules_webpack", version = "0.16.0")
@@ -14,6 +14,14 @@ bazel_dep(name = "container_structure_test", version = "1.16.0")
 bazel_dep(name = "rules_jvm_external", version = "5.3")
 bazel_dep(name = "rules_oci", version = "1.4.0")
 bazel_dep(name = "rules_java", version = "7.11.1")
+bazel_dep(name = "rules_pkg", version = "1.0.1")
+
+bazel_dep(name = "rules_spring")
+git_override(
+    module_name = "rules_spring",
+    remote = "https://github.com/salesforce/rules_spring",
+    commit = "baf1aac63d17f87c62277b5331c08105a9d9a155",
+)
 
 # java
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
@@ -21,7 +29,12 @@ maven.install(
     artifacts = [
         "junit:junit:4.13.2",
         "com.google.guava:guava:31.1-jre",
+        "org.springframework.boot:spring-boot-loader:3.3.4",
+        "org.springframework.boot:spring-boot-autoconfigure:3.3.4",
+        "org.springframework.boot:spring-boot-starter-actuator:3.3.4",
+        "org.springframework.boot:spring-boot-starter-logging:3.3.4",
         "org.springframework.boot:spring-boot-starter-web:3.3.4",
+        "org.springframework.boot:spring-boot-loader-classic:3.3.4",
         "org.springframework.boot:spring-boot-starter-data-jpa:3.3.4",
         "org.springframework.boot:spring-boot-starter-validation:3.3.4",
         "org.springframework.boot:spring-boot-starter-websocket:3.3.4",
@@ -71,3 +84,25 @@ rules_ts_ext = use_extension(
 )
 rules_ts_ext.deps()
 use_repo(rules_ts_ext, "npm_typescript")
+
+oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+# TODO: use docker file to create a smaller image instead of
+# using distroless/java21 directly
+oci.pull(
+    name = "distroless_java",
+    digest = "sha256:b2875ad56cdbf0b7f7d6b9ae1f9c205f3cec8cdb8791465b1321527f1c1e8559",
+    image = "gcr.io/distroless/java21",
+    platforms = [
+        "linux/amd64",
+    ],
+)
+use_repo(oci, "distroless_java")
+oci.pull(
+    name = "nginx",
+    image = "docker.io/library/nginx:alpine",
+    platforms = [
+        "linux/amd64",
+    ],
+    reproducible = False,
+)
+use_repo(oci, "nginx")

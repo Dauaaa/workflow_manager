@@ -1,16 +1,18 @@
-import { createContext, useContext, useState } from "react";
+import * as React from "react";
 import { WorkflowStore } from "./workflow-store";
 
-const WorkflowStoreContext = createContext<WorkflowStore>(
+const WorkflowStoreContext = React.createContext<WorkflowStore>(
   null as unknown as WorkflowStore,
 );
+
+let x: any;
 
 export const WorkflowStoreProvider = ({
   children,
 }: {
   children: React.ReactNode;
 }) => {
-  const [store] = useState(new WorkflowStore());
+  const [store] = React.useState(new WorkflowStore());
 
   return (
     <WorkflowStoreContext.Provider value={store}>
@@ -20,7 +22,7 @@ export const WorkflowStoreProvider = ({
 };
 
 export const useWorkflowStore = () => {
-  const workflowStore = useContext(WorkflowStoreContext);
+  const workflowStore = React.useContext(WorkflowStoreContext);
 
   // implementation error so just throw
   if (workflowStore === null)
