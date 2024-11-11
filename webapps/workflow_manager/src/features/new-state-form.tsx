@@ -47,7 +47,7 @@ export const NewStateForm = ({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(async (newState) => {
-          await workflowStore.createState(newState, workflowId);
+          await workflowStore.createState({ newState, workflowId });
           form.reset();
         })}
         className="space-y-8"

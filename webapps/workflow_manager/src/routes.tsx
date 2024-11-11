@@ -4,6 +4,7 @@ import { AuthenticationDisplay } from "./features/authentication-display";
 import { WorkflowStoreProvider } from "./store/context";
 import { AuthenticationContext } from "./features/authentication-context";
 import { ThemeProvider } from "./components/theme-provider";
+import { Toaster } from "./components/ui/sonner";
 
 const WorkflowsPage = React.lazy(() => import("./pages/workflows"));
 const WorkflowManagePage = React.lazy(() => import("./pages/workflow-manage"));
@@ -25,6 +26,7 @@ export const workflowManagerRouter: ReturnType<typeof createBrowserRouter> =
                 <AuthenticationContext />
                 <Outlet />
                 <AuthenticationDisplay />
+                <Toaster />
               </WorkflowStoreProvider>
             </ThemeProvider>
           ),

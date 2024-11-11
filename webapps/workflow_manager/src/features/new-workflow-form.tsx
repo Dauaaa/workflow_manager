@@ -29,8 +29,10 @@ type FormType = z.infer<typeof FormSchema>;
 
 export const NewWorkflowForm = ({
   buttonOverride,
+  onSubmitFinish,
 }: {
   buttonOverride?: React.ReactNode;
+  onSubmitFinish?: () => void;
 }) => {
   const form = useForm<FormType>({
     resolver: zodResolver(FormSchema),
@@ -44,7 +46,10 @@ export const NewWorkflowForm = ({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(workflowStore.createWorkflow)}
+        onSubmit={form.handleSubmit(async (arg) => {
+            await workflowStore.createWorkflow(arg);
+            onSubmitFinish?.();
+        })}
         className="space-y-8"
       >
         <FormField

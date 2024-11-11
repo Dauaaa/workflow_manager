@@ -5,8 +5,6 @@ const WorkflowStoreContext = React.createContext<WorkflowStore>(
   null as unknown as WorkflowStore,
 );
 
-let x: any;
-
 export const WorkflowStoreProvider = ({
   children,
 }: {

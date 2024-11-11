@@ -1,5 +1,5 @@
 import createClient, { HeadersOptions } from "openapi-fetch";
-import type { paths, components } from "workflow_manager_api";
+import type { paths } from "workflow_manager_api";
 import { z } from "zod";
 import {
   DayjsSchema,
@@ -11,11 +11,15 @@ import {
   IntegerSchemaRev,
   DecimalSchemaRev,
   DayjsTimeSchemaRev,
+  UnionToFnIntersection,
+  UnionToIntersection,
+  PartialPick,
 } from "common_schemas";
 // need these empty imports for typing to work
 import "dayjs";
 import "decimal.js";
 import { makeObservable, observable, action } from "mobx";
+import { v4 } from "uuid";
 
 export interface Authentication {
   clientId: string;
@@ -24,6 +28,28 @@ export interface Authentication {
 
 const USER_ID_KEY = "user-id";
 const CLIENT_ID_KEY = "client-id";
+const REGISTERED_SESSIONS_KEY = "registered-sessions";
+
+// simple types for user feedback
+type RequestStatus = "OK" | "ERROR" | "LOADING";
+type RequestStatusMapInner<T> =
+  UnionToFnIntersection<keyof T> extends () => infer K
+    ? K extends keyof T
+      // get all functions
+      ? T[K] extends (...args: any) => any
+        // get all functions that return a promise
+        ? ReturnType<T[K]> extends Promise<any>
+            ?
+                // function that returns promise!
+                | { [Key in K]: Map<string, RequestStatus> }
+                | RequestStatusMapInner<Omit<T, K>>
+            // function that doesn't return promise
+        : RequestStatusMapInner<Omit<T, K>>
+        // not function
+      : never
+      : never
+    : never;
+type RequestStatusMap<T> = UnionToIntersection<RequestStatusMapInner<T>>;
 
 /**
  * All in one store. It guarantees the application state is in sync with the servers.
@@ -49,6 +75,8 @@ export class WorkflowStore {
       | "upsertAttributes"
       | "authenticationInner"
       | "clear"
+      | "updateRequestStatus"
+      | "addSession"
     >(this, {
       workflows: observable,
       workflowStates: observable,
@@ -60,6 +88,8 @@ export class WorkflowStore {
       stateAttributes: observable,
       entityAttributes: observable,
       authenticationInner: observable,
+      requestStatus: observable,
+      registeredSessions: observable,
       upsertWorkflows: action,
       upsertStates: action,
       upsertEntities: action,
@@ -67,7 +97,14 @@ export class WorkflowStore {
       upsertAttributes: action,
       setAuthentication: action,
       clear: action,
+      updateRequestStatus: action,
+      addSession: action,
+      removeSession: action,
     });
+
+    this.wsWorkflowManager = new WorkflowManagerWebsocketClient(
+      this.onWsUpdate,
+    );
 
     const clientId = localStorage.getItem(CLIENT_ID_KEY);
     const userId = localStorage.getItem(USER_ID_KEY);
@@ -75,20 +112,36 @@ export class WorkflowStore {
     const isUuid = (s: string | null): s is string =>
       s ? z.string().uuid().safeParse(s).success : false;
 
-    this.wsWorkflowManager = new WorkflowManagerWebsocketClient(
-      this.onWsUpdate,
-    );
-
     if (!isUuid(clientId)) this.setAuthentication();
     else
       this.setAuthentication({
         clientId,
-        userId: isUuid(userId) ? userId : self.crypto.randomUUID(),
+        userId: isUuid(userId) ? userId : v4(),
       });
+
+    const registeredSessions = localStorage.getItem(REGISTERED_SESSIONS_KEY);
+
+    console.log({ registeredSessions });
+    if (registeredSessions) {
+      const UUIDSchema = z.string().uuid();
+
+      for (const session of registeredSessions.split(";")) {
+        const parsedSession = UUIDSchema.safeParse(session);
+
+        if (parsedSession?.data && !this.registeredSessions.has(parsedSession.data))
+            this.registeredSessions.set(parsedSession.data, this.registeredSessions.size);
+      }
+      const curClientId = this.authentication.current?.clientId;
+      if (curClientId && !this.registeredSessions.has(curClientId)) 
+          this.registeredSessions.set(curClientId, this.registeredSessions.size);
+
+      this.updateLocalStorageSession();
+    }
   }
 
   private workflowManagerService: WorkflowManagerService;
   private wsWorkflowManager: WorkflowManagerWebsocketClient;
+  public registeredSessions: Map<string, number> = new Map();
   public workflows: Map<number, Workflow> = new Map();
   public workflowStates: Map<number, WorkflowState> = new Map();
   public workflowStatesByWorkflow: Map<number, Map<number, WorkflowState>> =
@@ -111,6 +164,26 @@ export class WorkflowStore {
     new Map();
   public entityAttributes: Map<number, Map<string, WorkflowAttribute>> =
     new Map();
+
+  // omit request status otherwise the type will be recursive
+  public requestStatus: RequestStatusMap<WorkflowStore> = {
+    loadState: new Map(),
+    moveState: new Map(),
+    loadEntity: new Map(),
+    loadStates: new Map(),
+    createState: new Map(),
+    createEntity: new Map(),
+    loadWorkflow: new Map(),
+    setAttribute: new Map(),
+    loadWorkflows: new Map(),
+    setChangeRule: new Map(),
+    createWorkflow: new Map(),
+    loadAttributes: new Map(),
+    setWorkflowConfig: new Map(),
+    loadEntitiesByState: new Map(),
+    loadAttributeDescriptions: new Map(),
+    createAttributeDescription: new Map(),
+  };
 
   public getAttributeMapByRefType = (
     refType: WorkflowAttributeReferenceType,
@@ -140,13 +213,17 @@ export class WorkflowStore {
     return this.authenticationInner;
   }
 
-  public setAuthentication(auth?: Authentication) {
-    this.authenticationInner.current = auth;
+  public setAuthentication(auth?: PartialPick<Authentication, "userId">) {
+    this.authenticationInner.current = auth ? {
+        clientId: auth.clientId,
+        userId: auth.userId ?? v4(),
+    } : undefined;
 
-    if (auth) {
-      localStorage.setItem(CLIENT_ID_KEY, auth.clientId);
-      localStorage.setItem(USER_ID_KEY, auth.userId);
-      this.workflowManagerService.setAuthentication(auth);
+    if (this.authenticationInner.current) {
+      localStorage.setItem(CLIENT_ID_KEY, this.authenticationInner.current.clientId);
+      localStorage.setItem(USER_ID_KEY, this.authenticationInner.current.userId);
+      this.workflowManagerService.setAuthentication(this.authenticationInner.current);
+      this.addSession(this.authenticationInner.current.clientId);
     } else {
       localStorage.removeItem(CLIENT_ID_KEY);
       localStorage.removeItem(USER_ID_KEY);
@@ -201,134 +278,274 @@ export class WorkflowStore {
     refType: WorkflowAttributeReferenceType;
     baseEntityId: number;
   }) => {
+    if (!this.authentication.current?.clientId) return;
+
     const map = this.mapByRefType(refType);
 
     return map.get(baseEntityId);
   };
 
   public createWorkflow = async (
-    ...args: Parameters<WorkflowManagerService["createWorkflow"]>
+    arg: Parameters<WorkflowManagerService["createWorkflow"]>[0]
   ) => {
-    const workflow = await this.workflowManagerService.createWorkflow(...args);
+    if (!this.authentication.current?.clientId) return;
 
-    this.upsertWorkflows([workflow]);
+    this.updateRequestStatus("createWorkflow", arg, "LOADING");
+    const workflow = await this.workflowManagerService.createWorkflow(arg);
+
+    if (workflow.success) {
+      this.updateRequestStatus("createWorkflow", arg, "OK");
+      this.upsertWorkflows([workflow.data]);
+    } else {
+      this.updateRequestStatus("createWorkflow", arg, "ERROR");
+    }
   };
 
   public createState = async (
-    ...args: Parameters<WorkflowManagerService["createState"]>
+    arg: Parameters<WorkflowManagerService["createState"]>[0]
   ) => {
-    const state = await this.workflowManagerService.createState(...args);
+    if (!this.authentication.current?.clientId) return;
 
-    this.upsertStates([state]);
+    this.updateRequestStatus("createState", arg, "LOADING");
+    const state = await this.workflowManagerService.createState(arg);
+
+    if (state.success) {
+      this.updateRequestStatus("createState", arg, "OK");
+      this.upsertStates([state.data]);
+    } else {
+      this.updateRequestStatus("createState", arg, "ERROR");
+    }
   };
 
   public createEntity = async (
-    ...args: Parameters<WorkflowManagerService["createEntity"]>
+    arg: Parameters<WorkflowManagerService["createEntity"]>[0]
   ) => {
-    const entity = await this.workflowManagerService.createEntity(...args);
+    if (!this.authentication.current?.clientId) return;
 
-    this.upsertEntities([entity]);
+    this.updateRequestStatus("createEntity", arg, "LOADING");
+    const entity = await this.workflowManagerService.createEntity(arg);
+
+    if (entity.success) {
+      this.updateRequestStatus("createEntity", arg, "OK");
+      this.upsertEntities([entity.data]);
+    } else {
+      this.updateRequestStatus("createEntity", arg, "ERROR");
+    }
   };
 
   public createAttributeDescription = async (
-    ...args: Parameters<WorkflowManagerService["createAttributeDescription"]>
+    arg: Parameters<WorkflowManagerService["createAttributeDescription"]>[0]
   ) => {
-    const description =
-      await this.workflowManagerService.createAttributeDescription(...args);
+    if (!this.authentication.current?.clientId) return;
 
-    this.upsertAttributeDescriptions(args[0].workflowId, [description]);
+    this.updateRequestStatus("createAttributeDescription", arg, "LOADING");
+    const description =
+      await this.workflowManagerService.createAttributeDescription(arg);
+
+    if (description.success) {
+      this.updateRequestStatus("createAttributeDescription", arg, "OK");
+      this.upsertAttributeDescriptions(arg[0].workflowId, [description.data]);
+    } else {
+      this.updateRequestStatus("createAttributeDescription", arg, "ERROR");
+    }
   };
 
   public setAttribute = async (
-    ...args: Parameters<WorkflowManagerService["setAttribute"]>
+    arg: Parameters<WorkflowManagerService["setAttribute"]>[0]
   ) => {
-    const attribute = await this.workflowManagerService.setAttribute(...args);
+    if (!this.authentication.current?.clientId) return;
 
-    this.upsertAttributes(args[0].refType, [attribute]);
+    this.updateRequestStatus("setAttribute", arg, "LOADING");
+    const attribute = await this.workflowManagerService.setAttribute(arg);
+
+    if (attribute.success) {
+      this.updateRequestStatus("setAttribute", arg, "OK");
+      this.upsertAttributes(arg[0].refType, [attribute.data]);
+    } else {
+      this.updateRequestStatus("setAttribute", arg, "ERROR");
+    }
   };
 
   public setWorkflowConfig = async (
-    ...args: Parameters<WorkflowManagerService["setWorkflowConfig"]>
+    arg: Parameters<WorkflowManagerService["setWorkflowConfig"]>[0]
   ) => {
+    if (!this.authentication.current?.clientId) return;
+
+    this.updateRequestStatus("setWorkflowConfig", arg, "LOADING");
     const workflow = await this.workflowManagerService.setWorkflowConfig(
-      ...args,
+      arg,
     );
 
-    this.upsertWorkflows([workflow]);
+    if (workflow.success) {
+      this.updateRequestStatus("setWorkflowConfig", arg, "OK");
+      this.upsertWorkflows([workflow.data]);
+    } else {
+      this.updateRequestStatus("setWorkflowConfig", arg, "ERROR");
+    }
   };
 
   public setChangeRule = async (
-    ...args: Parameters<WorkflowManagerService["setChangeRule"]>
+    arg: Parameters<WorkflowManagerService["setChangeRule"]>[0]
   ) => {
-    const state = await this.workflowManagerService.setChangeRule(...args);
+    if (!this.authentication.current?.clientId) return;
 
-    this.upsertStates([state]);
+    this.updateRequestStatus("setChangeRule", arg, "LOADING");
+    const state = await this.workflowManagerService.setChangeRule(arg);
+
+    if (state.success) {
+      this.updateRequestStatus("setChangeRule", arg, "OK");
+      this.upsertStates([state.data]);
+    } else {
+      this.updateRequestStatus("setChangeRule", arg, "ERROR");
+    }
   };
 
   public moveState = async (
-    ...args: Parameters<WorkflowManagerService["moveState"]>
+    arg: Parameters<WorkflowManagerService["moveState"]>[0]
   ) => {
-    const res = await this.workflowManagerService.moveState(...args);
+    if (!this.authentication.current?.clientId) return;
 
-    this.upsertEntities([res.entity]);
-    this.upsertStates([res.from, res.to]);
+    this.updateRequestStatus("moveState", arg, "LOADING");
+    const res = await this.workflowManagerService.moveState(arg);
+
+    if (res.success) {
+      this.updateRequestStatus("moveState", arg, "OK");
+      this.upsertEntities([res.data.entity]);
+      this.upsertStates([res.data.from, res.data.to]);
+    } else {
+      this.updateRequestStatus("moveState", arg, "ERROR");
+    }
   };
 
   public loadAttributeDescriptions = async (workflowId: number) => {
+    if (!this.authentication.current?.clientId) return;
+
+    this.updateRequestStatus(
+      "loadAttributeDescriptions",
+      workflowId,
+      "LOADING",
+    );
     const descriptions =
       await this.workflowManagerService.getAttributesDescription(workflowId);
 
-    this.upsertAttributeDescriptions(workflowId, descriptions);
+    if (descriptions.success) {
+      this.updateRequestStatus("loadAttributeDescriptions", workflowId, "OK");
+      this.upsertAttributeDescriptions(workflowId, descriptions.data);
+    } else {
+      this.updateRequestStatus(
+        "loadAttributeDescriptions",
+        workflowId,
+        "ERROR",
+      );
+    }
   };
 
   public loadAttributes = async (
-    ...args: Parameters<WorkflowManagerService["getAttributes"]>
+    arg: Parameters<WorkflowManagerService["getAttributes"]>[0]
   ) => {
-    this.minorSubscription(args[0].baseEntityId, args[0].refType);
+    if (!this.authentication.current?.clientId) return;
 
-    const attrs = await this.workflowManagerService.getAttributes(...args);
+    this.minorSubscription(arg.baseEntityId, arg.refType);
 
-    this.upsertAttributes(args[0].refType, attrs);
+    this.updateRequestStatus("loadAttributes", arg, "LOADING");
+    const attrs = await this.workflowManagerService.getAttributes(arg);
+
+    if (attrs.success) {
+      this.updateRequestStatus("loadAttributes", arg, "OK");
+      this.upsertAttributes(arg.refType, attrs.data);
+    } else {
+      this.updateRequestStatus("loadAttributes", arg, "ERROR");
+    }
   };
 
   public loadWorkflow = async (workflowId: number) => {
+    if (!this.authentication.current?.clientId) return;
+
     this.mainSubscription(workflowId);
+
+    this.updateRequestStatus("loadWorkflow", workflowId, "LOADING");
     const res = await this.workflowManagerService.getWorkflow(workflowId);
 
-    this.upsertWorkflows([res]);
+    if (res.success) {
+      this.updateRequestStatus("loadWorkflow", workflowId, "OK");
+      this.upsertWorkflows([res.data]);
+    } else {
+      this.updateRequestStatus("loadWorkflow", workflowId, "ERROR");
+    }
   };
 
   public loadWorkflows = async () => {
+    if (!this.authentication.current?.clientId) return;
+
     this.mainSubscription();
+
+    this.updateRequestStatus("loadWorkflows", undefined, "LOADING");
     const workflows = await this.workflowManagerService.listWorkflows();
 
-    this.upsertWorkflows(workflows);
+    if (workflows.success) {
+      this.updateRequestStatus("loadWorkflows", undefined, "OK");
+      this.upsertWorkflows(workflows.data);
+    } else {
+      this.updateRequestStatus("loadWorkflows", undefined, "ERROR");
+    }
   };
 
   public loadState = async (workflowStateId: number) => {
+    if (!this.authentication.current?.clientId) return;
+
+    this.updateRequestStatus("loadState", workflowStateId, "LOADING");
     const res = await this.workflowManagerService.getState(workflowStateId);
 
-    this.upsertStates([res]);
+    if (res.success) {
+      this.updateRequestStatus("loadState", workflowStateId, "OK");
+      this.upsertStates([res.data]);
+    } else {
+      this.updateRequestStatus("loadState", workflowStateId, "ERROR");
+    }
   };
 
   public loadStates = async (workflowId: number) => {
+    if (!this.authentication.current?.clientId) return;
+
+    this.updateRequestStatus("loadStates", workflowId, "LOADING");
     const res =
       await this.workflowManagerService.listStatesByWorkflow(workflowId);
 
-    this.upsertStates(res);
+    if (res.success) {
+      this.updateRequestStatus("loadStates", workflowId, "OK");
+      this.upsertStates(res.data);
+    } else {
+      this.updateRequestStatus("loadStates", workflowId, "ERROR");
+    }
   };
 
   public loadEntity = async (entityId: number) => {
+    if (!this.authentication.current?.clientId) return;
+
+    this.updateRequestStatus("loadEntity", entityId, "LOADING");
     const res = await this.workflowManagerService.getEntity(entityId);
 
-    this.upsertEntities([res]);
+    if (res.success) {
+      this.updateRequestStatus("loadEntity", entityId, "OK");
+      this.upsertEntities([res.data]);
+    } else {
+      this.updateRequestStatus("loadEntity", entityId, "ERROR");
+    }
   };
 
   public loadEntitiesByState = async (stateId: number) => {
+    if (!this.authentication.current?.clientId) return;
+
+    this.updateRequestStatus("loadEntitiesByState", stateId, "LOADING");
     const entities =
       await this.workflowManagerService.listEntitiesByState(stateId);
 
-    this.upsertEntities(entities);
+    if (entities.success) {
+      this.updateRequestStatus("loadEntitiesByState", stateId, "OK");
+      this.upsertEntities(entities.data);
+    } else {
+      this.updateRequestStatus("loadEntitiesByState", stateId, "ERROR");
+    }
   };
 
   private upsertWorkflows = (workflows: Workflow[]) => {
@@ -537,8 +754,10 @@ export class WorkflowStore {
       return;
     }
 
-    if (this.subscriptions.minor.length > 5)
-      this.wsWorkflowManager.unsubscribe([this.subscriptions.minor.shift()!]);
+    // don't subscribe to too many topics
+    // not good idea since user could have 5 states opened at the same time...
+    // if (this.subscriptions.minor.length > 5)
+    //   this.wsWorkflowManager.unsubscribe([this.subscriptions.minor.shift()!]);
 
     const sub: EntityReference = {
       baseEntityId,
@@ -549,11 +768,55 @@ export class WorkflowStore {
     this.wsWorkflowManager.subscribe([sub]);
     this.subscriptions.minor.push(sub);
   };
+
+  public static requestHash = <
+    K extends keyof WorkflowStore["requestStatus"],
+  >(
+    payload: Parameters<WorkflowStore[K]>[0],
+) => {
+    return JSON.stringify(payload);
+  };
+
+  private updateRequestStatus = <
+    K extends keyof WorkflowStore["requestStatus"],
+  >(
+    request: K,
+    payload: Parameters<WorkflowStore[K]>[0],
+    status: RequestStatus,
+  ) => {
+    this.requestStatus[request].set(WorkflowStore.requestHash(payload), status);
+  };
+
+  private updateLocalStorageSession = () => {
+      const sessions: string[] = [];
+
+      for (const [sessionId, sessionIdx] of this.registeredSessions) sessions[sessionIdx] = sessionId;
+
+      localStorage.setItem(REGISTERED_SESSIONS_KEY, sessions.join(";"))
+  }
+
+  private addSession = (
+      sessionId: string
+  ) => {
+      if (this.registeredSessions.has(sessionId)) return;
+
+      this.registeredSessions.set(sessionId, this.registeredSessions.size);
+      this.updateLocalStorageSession();
+  }
+
+  public removeSession = (
+      sessionId: string,
+  ) => {
+      const sessionIdx = this.registeredSessions.get(sessionId);
+      if (!sessionIdx) return;
+
+      for (const [curSessionId, curSessionIdx] of [...this.registeredSessions.entries()]) 
+          if (curSessionIdx > sessionIdx) this.registeredSessions.set(curSessionId, curSessionIdx - 1);
+
+      this.updateLocalStorageSession();
+  }
 }
 
-// TODO: all methods throw on error right now.
-// TODO: create error type and return accordingly (need to map some spring boot stuff
-// so I'm skipping for now...)
 class WorkflowManagerService {
   public createWorkflow = async (newWorkflow: RequestNewWorkflow) => {
     const resParser = parsers.WorkflowSchema;
@@ -562,80 +825,118 @@ class WorkflowManagerService {
     const parsedNewWorkflow =
       parsers.RequestNewWorkflowSchema.parse(newWorkflow);
 
-    const response = await this.client.POST("/workflows", {
-      body: parsedNewWorkflow,
-      headers: this.getHeaders(),
-    });
+    try {
+      const response = await this.client.POST("/workflows", {
+        body: parsedNewWorkflow,
+        headers: this.getHeaders(),
+      });
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    const eventId = response.response.headers.get("event-id");
-    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
+      const eventId = response.response.headers.get("event-id");
+      if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public createState = async (
+      {newState, workflowId}: {
+
     newState: RequestNewWorkflowState,
     workflowId: number,
+      }
   ) => {
     const resParser = parsers.WorkflowStateSchema;
     const parsedNewState =
       parsers.RequestNewWorkflowStateSchema.parse(newState);
 
-    const response = await this.client.POST(
-      "/workflows/{workflowId}/workflow-states",
-      {
-        body: parsedNewState,
-        params: {
-          path: { workflowId },
+    try {
+      const response = await this.client.POST(
+        "/workflows/{workflowId}/workflow-states",
+        {
+          body: parsedNewState,
+          params: {
+            path: { workflowId },
+          },
+          headers: this.getHeaders(),
         },
-        headers: this.getHeaders(),
-      },
-    );
+      );
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    const eventId = response.response.headers.get("event-id");
-    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
+      const eventId = response.response.headers.get("event-id");
+      if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public createEntity = async (
+      {newEntity, workflowId}: {
     newEntity: RequestNewWorkflowEntity,
     workflowId: number,
+      }
   ) => {
     const resParser = parsers.WorkflowEntitySchema;
     const parsedNewEntity =
       parsers.RequestNewWorkflowEntitySchema.parse(newEntity);
 
-    const response = await this.client.POST(
-      "/workflows/{workflowId}/workflow-entities",
-      {
-        body: parsedNewEntity,
-        params: {
-          path: { workflowId },
+    try {
+      const response = await this.client.POST(
+        "/workflows/{workflowId}/workflow-entities",
+        {
+          body: parsedNewEntity,
+          params: {
+            path: { workflowId },
+          },
+          headers: this.getHeaders(),
         },
-        headers: this.getHeaders(),
-      },
-    );
+      );
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    const eventId = response.response.headers.get("event-id");
-    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
+      const eventId = response.response.headers.get("event-id");
+      if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public createAttributeDescription = async ({
@@ -645,26 +946,37 @@ class WorkflowManagerService {
     typeof parsers.RequestNewAttributeDescriptionSchema
   >) => {
     const resParser = parsers.WorkflowAttributeDescriptionSchema;
-    const response = await this.client.POST(
-      "/workflows/{workflowId}/attribute-descriptions",
-      {
-        params: {
-          path: { workflowId },
+    try {
+      const response = await this.client.POST(
+        "/workflows/{workflowId}/attribute-descriptions",
+        {
+          params: {
+            path: { workflowId },
+          },
+          body,
+          headers: this.getHeaders(),
         },
-        body,
-        headers: this.getHeaders(),
-      },
-    );
+      );
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    const eventId = response.response.headers.get("event-id");
-    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
+      const eventId = response.response.headers.get("event-id");
+      if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public setAttribute = async ({
@@ -679,104 +991,129 @@ class WorkflowManagerService {
     attributeName: string;
   }) => {
     const resParser = parsers.WorkflowAttributeSchema;
-    let response: any;
-    switch (refType) {
-      case "WORKFLOW": {
-        const res = await this.client.PUT(
-          "/workflows/{workflowId}/attributes/{attributeName}",
-          {
-            body: attr,
-            params: {
-              path: {
-                workflowId: baseEntityId,
-                attributeName,
+    try {
+      let response: any;
+      switch (refType) {
+        case "WORKFLOW": {
+          const res = await this.client.PUT(
+            "/workflows/{workflowId}/attributes/{attributeName}",
+            {
+              body: attr,
+              params: {
+                path: {
+                  workflowId: baseEntityId,
+                  attributeName,
+                },
               },
+              headers: this.getHeaders(),
             },
-            headers: this.getHeaders(),
-          },
-        );
-        response = res;
-        // @ts-ignore
-        type _verify = Assert<
-          Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
-        >;
-        break;
-      }
-      case "WORKFLOW_STATE": {
-        const res = await this.client.PUT(
-          "/workflow-states/{stateId}/attributes/{attributeName}",
-          {
-            body: attr,
-            params: {
-              path: {
-                stateId: baseEntityId,
-                attributeName,
+          );
+          response = res;
+          // @ts-ignore
+          type _verify = Assert<
+            Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
+          >;
+          break;
+        }
+        case "WORKFLOW_STATE": {
+          const res = await this.client.PUT(
+            "/workflow-states/{stateId}/attributes/{attributeName}",
+            {
+              body: attr,
+              params: {
+                path: {
+                  stateId: baseEntityId,
+                  attributeName,
+                },
               },
+              headers: this.getHeaders(),
             },
-            headers: this.getHeaders(),
-          },
-        );
-        response = res;
-        // @ts-ignore
-        type _verify = Assert<
-          Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
-        >;
-        break;
-      }
-      case "WORKFLOW_ENTITY": {
-        const res = await this.client.PUT(
-          "/workflow-entities/{entityId}/attributes/{attributeName}",
-          {
-            body: attr,
-            params: {
-              path: {
-                entityId: baseEntityId,
-                attributeName,
+          );
+          response = res;
+          // @ts-ignore
+          type _verify = Assert<
+            Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
+          >;
+          break;
+        }
+        case "WORKFLOW_ENTITY": {
+          const res = await this.client.PUT(
+            "/workflow-entities/{entityId}/attributes/{attributeName}",
+            {
+              body: attr,
+              params: {
+                path: {
+                  entityId: baseEntityId,
+                  attributeName,
+                },
               },
+              headers: this.getHeaders(),
             },
-            headers: this.getHeaders(),
-          },
-        );
-        response = res;
-        // @ts-ignore
-        type _verify = Assert<
-          Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
-        >;
-        break;
+          );
+          response = res;
+          // @ts-ignore
+          type _verify = Assert<
+            Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
+          >;
+          break;
+        }
       }
+
+      const eventId = response.response.headers.get("event-id");
+      if (eventId && this.seenEvents) this.seenEvents.add(eventId);
+
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
     }
-
-    const eventId = response.response.headers.get("event-id");
-    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
-
-    return resParser.parse(response?.data);
   };
 
   public setWorkflowConfig = async (
+      {
+          workflowId,
+          config,
+      }: {
     workflowId: number,
     config: RequestUpdateWorkflowConfig,
+
+      }
   ) => {
     const resParser = parsers.WorkflowSchema;
-    const parsedConfig =
-      parsers.RequestUpdateWorkflowConfigSchema.parse(config);
+    try {
+      const parsedConfig =
+        parsers.RequestUpdateWorkflowConfigSchema.parse(config);
 
-    const response = await this.client.PUT("/workflows/{workflowId}/config", {
-      params: {
-        path: { workflowId },
-      },
-      body: parsedConfig,
-      headers: this.getHeaders(),
-    });
+      const response = await this.client.PUT("/workflows/{workflowId}/config", {
+        params: {
+          path: { workflowId },
+        },
+        body: parsedConfig,
+        headers: this.getHeaders(),
+      });
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    const eventId = response.response.headers.get("event-id");
-    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
+      const eventId = response.response.headers.get("event-id");
+      if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
-    return resParser.parse(response.data);
+      return resParser.safeParse(response.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public setChangeRule = async ({
@@ -787,28 +1124,37 @@ class WorkflowManagerService {
     rule: RequestSetChangeStateRule;
   }) => {
     const resParser = parsers.WorkflowStateSchema;
-    const response = await this.client.POST(
-      "/workflow-states/{workflowStateId}/rules",
-      {
-        body: rule,
-        params: {
-          path: { workflowStateId },
+    try {
+      const response = await this.client.POST(
+        "/workflow-states/{workflowStateId}/rules",
+        {
+          body: rule,
+          params: {
+            path: { workflowStateId },
+          },
+          headers: this.getHeaders(),
         },
-        headers: this.getHeaders(),
-      },
-    );
+      );
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    const eventId = response.response.headers.get("event-id");
-    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
-    // TODO: response error handling
+      const eventId = response.response.headers.get("event-id");
+      if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
-    // TODO: parser error handling
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public moveState = async ({
@@ -819,85 +1165,121 @@ class WorkflowManagerService {
     newStateId: number;
   }) => {
     const resParser = parsers.ResponseEntityChangeStateSchema;
-    const response = await this.client.PATCH(
-      "/workflow-entities/{entityId}/workflow-states/{newStateId}",
-      {
-        params: { path: { entityId, newStateId } },
-        headers: this.getHeaders(),
-      },
-    );
+    try {
+      const response = await this.client.PATCH(
+        "/workflow-entities/{entityId}/workflow-states/{newStateId}",
+        {
+          params: { path: { entityId, newStateId } },
+          headers: this.getHeaders(),
+        },
+      );
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    const eventId = response.response.headers.get("event-id");
-    if (eventId && this.seenEvents) this.seenEvents.add(eventId);
+      const eventId = response.response.headers.get("event-id");
+      if (eventId && this.seenEvents) this.seenEvents.add(eventId);
 
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public listWorkflows = async () => {
     const resParser = parsers.WorkflowSchema.array();
-    const response = await this.client.GET("/workflows", {
-      headers: this.getHeaders(),
-    });
+    try {
+      const response = await this.client.GET("/workflows", {
+        headers: this.getHeaders(),
+      });
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public listStatesByWorkflow = async (workflowId: number) => {
     const resParser = parsers.WorkflowStateSchema.array();
-    const response = await this.client.GET(
-      "/workflows/{workflowId}/workflow-states",
-      {
-        params: {
-          path: { workflowId },
+    try {
+      const response = await this.client.GET(
+        "/workflows/{workflowId}/workflow-states",
+        {
+          params: {
+            path: { workflowId },
+          },
+          headers: this.getHeaders(),
         },
-        headers: this.getHeaders(),
-      },
-    );
+      );
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
-    // TODO: response error handling
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    // TODO: parser error handling
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public listEntitiesByState = async (workflowStateId: number) => {
     const resParser = parsers.WorkflowEntitySchema.array();
-    const response = await this.client.GET(
-      "/workflow-states/{workflowStateId}/workflow-entities",
-      {
-        params: {
-          path: { workflowStateId },
+    try {
+      const response = await this.client.GET(
+        "/workflow-states/{workflowStateId}/workflow-entities",
+        {
+          params: {
+            path: { workflowStateId },
+          },
+          headers: this.getHeaders(),
         },
-        headers: this.getHeaders(),
-      },
-    );
+      );
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public getAttributes = async ({
@@ -910,153 +1292,190 @@ class WorkflowManagerService {
     baseEntityId: number;
   }) => {
     const resParser = parsers.WorkflowAttributeSchema.array();
-    let response: any;
-    switch (refType) {
-      case "WORKFLOW": {
-        const res = await this.client.GET(
-          "/workflows/{workflowId}/attributes",
-          {
-            params: {
-              path: { workflowId: baseEntityId },
+    try {
+      let response: any;
+      switch (refType) {
+        case "WORKFLOW": {
+          const res = await this.client.GET(
+            "/workflows/{workflowId}/attributes",
+            {
+              params: {
+                path: { workflowId: baseEntityId },
+              },
+              headers: this.getHeaders(),
             },
-            headers: this.getHeaders(),
-          },
-        );
-        response = res;
-        // @ts-ignore
-        type _verify = Assert<
-          Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
-        >;
-        break;
-      }
-      case "WORKFLOW_STATE": {
-        const res = await this.client.GET(
-          "/workflow-states/{stateId}/attributes",
-          {
-            params: {
-              path: { stateId: baseEntityId },
+          );
+          response = res;
+          // @ts-ignore
+          type _verify = Assert<
+            Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
+          >;
+          break;
+        }
+        case "WORKFLOW_STATE": {
+          const res = await this.client.GET(
+            "/workflow-states/{stateId}/attributes",
+            {
+              params: {
+                path: { stateId: baseEntityId },
+              },
+              headers: this.getHeaders(),
             },
-            headers: this.getHeaders(),
-          },
-        );
-        response = res;
-        // @ts-ignore
-        type _verify = Assert<
-          Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
-        >;
-        break;
-      }
-      case "WORKFLOW_ENTITY": {
-        const res = await this.client.GET(
-          "/workflow-entities/{entityId}/attributes",
-          {
-            params: {
-              path: { entityId: baseEntityId },
+          );
+          response = res;
+          // @ts-ignore
+          type _verify = Assert<
+            Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
+          >;
+          break;
+        }
+        case "WORKFLOW_ENTITY": {
+          const res = await this.client.GET(
+            "/workflow-entities/{entityId}/attributes",
+            {
+              params: {
+                path: { entityId: baseEntityId },
+              },
+              headers: this.getHeaders(),
             },
-            headers: this.getHeaders(),
-          },
-        );
-        response = res;
-        // @ts-ignore
-        type _verify = Assert<
-          Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
-        >;
+          );
+          response = res;
+          // @ts-ignore
+          type _verify = Assert<
+            Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
+          >;
+        }
       }
+
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
     }
-
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return resParser.parse(response?.data);
   };
 
   public getAttributesDescription = async (workflowId: number) => {
     const resParser = parsers.WorkflowAttributeDescriptionSchema.array();
-    const response = await this.client.GET(
-      "/workflows/{workflowId}/attribute-descriptions",
-      {
-        params: {
-          path: { workflowId },
+    try {
+      const response = await this.client.GET(
+        "/workflows/{workflowId}/attribute-descriptions",
+        {
+          params: {
+            path: { workflowId },
+          },
+          headers: this.getHeaders(),
         },
-        headers: this.getHeaders(),
-      },
-    );
+      );
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public getWorkflow = async (workflowId: number) => {
     const resParser = parsers.WorkflowSchema;
-    const response = await this.client.GET("/workflows/{workflowId}", {
-      params: {
-        path: { workflowId },
-      },
-      headers: this.getHeaders(),
-    });
+    try {
+      const response = await this.client.GET("/workflows/{workflowId}", {
+        params: {
+          path: { workflowId },
+        },
+        headers: this.getHeaders(),
+      });
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public getState = async (workflowStateId: number) => {
     const resParser = parsers.WorkflowStateSchema;
-    const response = await this.client.GET(
-      "/workflow-states/{workflowStateId}",
-      {
-        params: {
-          path: { workflowStateId },
+    try {
+      const response = await this.client.GET(
+        "/workflow-states/{workflowStateId}",
+        {
+          params: {
+            path: { workflowStateId },
+          },
+          headers: this.getHeaders(),
         },
-        headers: this.getHeaders(),
-      },
-    );
+      );
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public getEntity = async (workflowEntityId: number) => {
     const resParser = parsers.WorkflowEntitySchema;
-    const response = await this.client.GET(
-      "/workflow-entities/{workflowEntityId}",
-      {
-        params: {
-          path: { workflowEntityId },
+    try {
+      const response = await this.client.GET(
+        "/workflow-entities/{workflowEntityId}",
+        {
+          params: {
+            path: { workflowEntityId },
+          },
+          headers: this.getHeaders(),
         },
-        headers: this.getHeaders(),
-      },
-    );
+      );
 
-    // @ts-ignore
-    type _verify = Assert<
-      Extends<(typeof response)["data"], z.input<typeof resParser> | undefined>
-    >;
+      // @ts-ignore
+      type _verify = Assert<
+        Extends<
+          (typeof response)["data"],
+          z.input<typeof resParser> | undefined
+        >
+      >;
 
-    // TODO: response error handling
-
-    // TODO: parser error handling
-    return resParser.parse(response?.data);
+      return resParser.safeParse(response?.data);
+    } catch {
+      return { success: false } as {
+        success: false;
+        description?: undefined;
+        error?: undefined;
+      };
+    }
   };
 
   public setSeenEvents = (seenEvents?: Set<string>) => {
@@ -1280,39 +1699,6 @@ export module parsers {
     ids: z.number().array(),
     lastCurrentEntitiesChange: DayjsSchema,
   });
-
-  type _verify = [
-    Assert<
-      Extends<
-        components["schemas"]["ResponseWorkflow"],
-        z.input<typeof WorkflowSchema>
-      >
-    >,
-    Assert<
-      Extends<
-        components["schemas"]["ResponseWorkflowState"],
-        z.input<typeof WorkflowStateSchema>
-      >
-    >,
-    Assert<
-      Extends<
-        components["schemas"]["ResponseWorkflowEntity"],
-        z.input<typeof WorkflowEntitySchema>
-      >
-    >,
-    Assert<
-      Extends<
-        components["schemas"]["ResponseAttribute"],
-        z.input<typeof WorkflowAttributeSchema>
-      >
-    >,
-    Assert<
-      Extends<
-        components["schemas"]["ResponseAttributeDescription"],
-        z.input<typeof WorkflowAttributeDescriptionSchema>
-      >
-    >,
-  ];
 }
 
 type EntitySubscriptionType = WorkflowAttributeReferenceType;

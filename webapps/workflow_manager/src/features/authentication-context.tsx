@@ -21,6 +21,9 @@ import { observer } from "mobx-react-lite";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import "react";
+import { useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
+import { v4 } from "uuid";
 
 const AuthenticationSchema = z.object({
   clientId: z.string().uuid({
@@ -31,6 +34,7 @@ type AuthenticationType = z.infer<typeof AuthenticationSchema>;
 
 export const AuthenticationContext = observer(() => {
   const workflowStore = useWorkflowStore();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const form = useForm<AuthenticationType>({
     resolver: zodResolver(AuthenticationSchema),
@@ -39,12 +43,27 @@ export const AuthenticationContext = observer(() => {
     },
   });
 
+  // sync clientId search param with authentication
+  useEffect(() => {
+    const clientId = searchParams.get("clientId");
+  if (!clientId) return;
+    workflowStore.setAuthentication({
+        clientId,
+    })
+    setSearchParams(searchParams => {
+        const paramsAsObject = Object.fromEntries(searchParams.entries());
+        delete paramsAsObject["clientId"];
+        return new URLSearchParams(paramsAsObject);
+    })
+
+  }, [searchParams]);
+
   const auth = workflowStore.authentication.current;
 
   return (
     <Dialog open={!auth}>
-      <DialogContent hideCloseIcon>
-        <DialogHeader>
+      <DialogContent className="max-w-[80vw]" hideCloseIcon>
+        <DialogHeader className="max-w-[60vw]">
           <DialogTitle>Login</DialogTitle>
           <DialogDescription>
             Create a new client or provide an existing Client ID.
@@ -55,11 +74,10 @@ export const AuthenticationContext = observer(() => {
             onSubmit={form.handleSubmit((val) => {
               workflowStore.setAuthentication({
                 clientId: val.clientId,
-                userId: self.crypto.randomUUID(),
               });
               form.reset();
             })}
-            className="flex flex-col gap-8"
+            className="max-w-[80vw] flex flex-col gap-8"
           >
             <FormField
               control={form.control}
@@ -69,12 +87,12 @@ export const AuthenticationContext = observer(() => {
                   <FormLabel>Client ID</FormLabel>
                   <div className="flex gap-4 font-mono">
                     <FormControl className="flex">
-                      <Input {...field} className="w-96" />
+                      <Input {...field} className="w-full" />
                     </FormControl>
                     <Button
                       onClick={(e) => {
                         e.preventDefault();
-                        field.onChange(self.crypto.randomUUID());
+                        field.onChange(v4());
                       }}
                     >
                       <UpdateIcon />

@@ -19,4 +19,52 @@ export type Equal<X, Y> =
   (<T>() => T extends X ? 1 : 2) extends
   (<T>() => T extends Y ? 1 : 2) ? true : false;
 export type Extends<X, Y> = X extends Y ? true : false;
-export type Defined<T> = T extends (infer U) | undefined ? U : never;
+export type UnionToFnIntersection<T> = (
+  T extends T ? (x: () => T) => void : never
+) extends (x: infer R) => void
+  ? R
+  : never;
+export type UnionToIntersection<U> = (U extends any ? (arg: U) => any : never) extends ((arg: infer I) => void) ? I : never
+
+/**
+ * Walk object using dot as delimiter
+ *
+ * @example 
+ * ```
+ * type Obj = { a: { b: number; x: 'a' }; c: string };
+ 
+ * type A = TypeGet<Obj, 'a'>; // { a: { b: number; x: 'a' } }
+ * type B = TypeGet<Obj, 'a.b'>; // { a: { b: number } }
+ * type C = TypeGet<Obj, 'c'>; // { c: string }
+ */
+export type TypeGet<T, Paths> = Paths extends `${infer A}.${infer B}`
+  ? A extends keyof T
+    ? { [K in A]: TypeGet<T[A], B> }
+    : never
+  : Paths extends keyof T
+    ? { [K in Paths]: T[Paths] }
+    : never;
+
+/**
+ * Walk object using dot as delimiter, allows to pick multiple properties
+ *
+ * @example 
+ * ```
+ * type Obj = { a: { b: number; x: 'a' }; c: string };
+ 
+ * type A = DeepPick<Obj, 'a'>; // { a: { b: number; x: 'a' } }
+ * type B = DeepPick<Obj, 'a.b'>; // { a: { b: number } }
+ * type C = DeepPick<Obj, 'c'>; // { c: string }
+ * type ABC = DeepPick<Obj, 'a.b' | 'c'> // { a: { b: number } } & { c: string }
+ * ```
+ */
+export type DeepPick<T, PathUnion extends string> =
+  UnionToFnIntersection<
+    PathUnion extends infer Keys ? TypeGet<T, Keys> : never
+  > extends () => infer R
+    ? R
+    : never;
+
+export type PartialPick<T, Keys extends keyof T> = Omit<T, Keys> & {
+  [K in Keys]?: T[K];
+};

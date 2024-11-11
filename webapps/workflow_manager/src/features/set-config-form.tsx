@@ -77,7 +77,7 @@ const SetConfigFormInner = observer(
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit((config) =>
-            workflowStore.setWorkflowConfig(workflow.id, config),
+            workflowStore.setWorkflowConfig({ workflowId: workflow.id, config }),
           )}
           className="space-y-8"
         >

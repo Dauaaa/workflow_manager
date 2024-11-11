@@ -30,6 +30,9 @@
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+
+    --success: 76 90% 40%;
+    --success-foreground: 0 0% 98%;
  
     --ring: 0 0% 3.9%;
  
@@ -73,6 +76,9 @@
  
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
+
+    --success: 76 20% 30%;
+    --success-foreground: 0 0% 98%;
  
     --ring: 0 0% 83.1%;
  
@@ -87,6 +93,24 @@
     --chart-4: 280 65% 60%;
  
     --chart-5: 340 75% 55%;
+  }
+
+  .gradient-background {
+      background: linear-gradient(170deg, hsl(var(--accent)), hsl(var(--background)));
+      background-size: 120% 120%;
+      animation: gradient-animation 2s ease infinite;
+  }
+
+  @keyframes gradient-animation {
+      0% {
+          background-position: 0% 50%;
+      }
+      50% {
+          background-position: 100% 50%;
+      }
+      100% {
+          background-position: 0% 50%;
+      }
   }
 }
  

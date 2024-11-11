@@ -64,7 +64,7 @@ export const NewEntityForm = ({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(async (newEntity) => {
-              workflowStore.createEntity(newEntity, workflowId);
+              workflowStore.createEntity({ newEntity, workflowId });
               form.reset();
             })}
             className="space-y-8"
