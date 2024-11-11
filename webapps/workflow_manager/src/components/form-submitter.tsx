@@ -2,8 +2,9 @@ import { Button } from "./ui/button";
 import { z } from "zod";
 import { FieldValues, UseFormReturn } from "react-hook-form";
 import { PopoverClose } from "./ui/popover";
+import { DialogClose } from "./ui/dialog";
 
-export type CloseContextType = "popover";
+export type CloseContextType = "popover" | "dialog";
 
 export function FormSubmitter<T extends FieldValues>({
   form,
@@ -27,6 +28,8 @@ export function FormSubmitter<T extends FieldValues>({
 
   if (closeContext === "popover")
     return <PopoverClose asChild>{button}</PopoverClose>;
+  if (closeContext === "dialog")
+    return <DialogClose asChild>{button}</DialogClose>;
 
   return button;
 }

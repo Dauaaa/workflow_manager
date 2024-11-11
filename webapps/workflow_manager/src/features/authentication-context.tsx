@@ -46,16 +46,15 @@ export const AuthenticationContext = observer(() => {
   // sync clientId search param with authentication
   useEffect(() => {
     const clientId = searchParams.get("clientId");
-  if (!clientId) return;
+    if (!clientId) return;
     workflowStore.setAuthentication({
-        clientId,
-    })
-    setSearchParams(searchParams => {
-        const paramsAsObject = Object.fromEntries(searchParams.entries());
-        delete paramsAsObject["clientId"];
-        return new URLSearchParams(paramsAsObject);
-    })
-
+      clientId,
+    });
+    setSearchParams((searchParams) => {
+      const paramsAsObject = Object.fromEntries(searchParams.entries());
+      delete paramsAsObject["clientId"];
+      return new URLSearchParams(paramsAsObject);
+    });
   }, [searchParams]);
 
   const auth = workflowStore.authentication.current;

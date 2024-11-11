@@ -52,6 +52,8 @@ Showcase some of my current developer skills and knowledge.
     - [ ] background signal on change
     - [ ] error toast
     - [ ] schema error messages
+    - [ ] date attribute form component
+    - [ ] timestamp atribute form component
 
 ## DX features
 - [x] java app

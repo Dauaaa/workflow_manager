@@ -35,18 +35,17 @@ type RequestStatus = "OK" | "ERROR" | "LOADING";
 type RequestStatusMapInner<T> =
   UnionToFnIntersection<keyof T> extends () => infer K
     ? K extends keyof T
-      // get all functions
-      ? T[K] extends (...args: any) => any
-        // get all functions that return a promise
-        ? ReturnType<T[K]> extends Promise<any>
-            ?
-                // function that returns promise!
-                | { [Key in K]: Map<string, RequestStatus> }
-                | RequestStatusMapInner<Omit<T, K>>
-            // function that doesn't return promise
-        : RequestStatusMapInner<Omit<T, K>>
-        // not function
-      : never
+      ? // get all functions
+        T[K] extends (...args: any) => any
+        ? // get all functions that return a promise
+          ReturnType<T[K]> extends Promise<any>
+          ? // function that returns promise!
+            | { [Key in K]: Map<string, RequestStatus> }
+              | RequestStatusMapInner<Omit<T, K>>
+          : // function that doesn't return promise
+            RequestStatusMapInner<Omit<T, K>>
+        : // not function
+          never
       : never
     : never;
 type RequestStatusMap<T> = UnionToIntersection<RequestStatusMapInner<T>>;
@@ -128,12 +127,18 @@ export class WorkflowStore {
       for (const session of registeredSessions.split(";")) {
         const parsedSession = UUIDSchema.safeParse(session);
 
-        if (parsedSession?.data && !this.registeredSessions.has(parsedSession.data))
-            this.registeredSessions.set(parsedSession.data, this.registeredSessions.size);
+        if (
+          parsedSession?.data &&
+          !this.registeredSessions.has(parsedSession.data)
+        )
+          this.registeredSessions.set(
+            parsedSession.data,
+            this.registeredSessions.size,
+          );
       }
       const curClientId = this.authentication.current?.clientId;
-      if (curClientId && !this.registeredSessions.has(curClientId)) 
-          this.registeredSessions.set(curClientId, this.registeredSessions.size);
+      if (curClientId && !this.registeredSessions.has(curClientId))
+        this.registeredSessions.set(curClientId, this.registeredSessions.size);
 
       this.updateLocalStorageSession();
     }
@@ -214,15 +219,25 @@ export class WorkflowStore {
   }
 
   public setAuthentication(auth?: PartialPick<Authentication, "userId">) {
-    this.authenticationInner.current = auth ? {
-        clientId: auth.clientId,
-        userId: auth.userId ?? v4(),
-    } : undefined;
+    this.authenticationInner.current = auth
+      ? {
+          clientId: auth.clientId,
+          userId: auth.userId ?? v4(),
+        }
+      : undefined;
 
     if (this.authenticationInner.current) {
-      localStorage.setItem(CLIENT_ID_KEY, this.authenticationInner.current.clientId);
-      localStorage.setItem(USER_ID_KEY, this.authenticationInner.current.userId);
-      this.workflowManagerService.setAuthentication(this.authenticationInner.current);
+      localStorage.setItem(
+        CLIENT_ID_KEY,
+        this.authenticationInner.current.clientId,
+      );
+      localStorage.setItem(
+        USER_ID_KEY,
+        this.authenticationInner.current.userId,
+      );
+      this.workflowManagerService.setAuthentication(
+        this.authenticationInner.current,
+      );
       this.addSession(this.authenticationInner.current.clientId);
     } else {
       localStorage.removeItem(CLIENT_ID_KEY);
@@ -286,7 +301,7 @@ export class WorkflowStore {
   };
 
   public createWorkflow = async (
-    arg: Parameters<WorkflowManagerService["createWorkflow"]>[0]
+    arg: Parameters<WorkflowManagerService["createWorkflow"]>[0],
   ) => {
     if (!this.authentication.current?.clientId) return;
 
@@ -302,7 +317,7 @@ export class WorkflowStore {
   };
 
   public createState = async (
-    arg: Parameters<WorkflowManagerService["createState"]>[0]
+    arg: Parameters<WorkflowManagerService["createState"]>[0],
   ) => {
     if (!this.authentication.current?.clientId) return;
 
@@ -318,7 +333,7 @@ export class WorkflowStore {
   };
 
   public createEntity = async (
-    arg: Parameters<WorkflowManagerService["createEntity"]>[0]
+    arg: Parameters<WorkflowManagerService["createEntity"]>[0],
   ) => {
     if (!this.authentication.current?.clientId) return;
 
@@ -334,7 +349,7 @@ export class WorkflowStore {
   };
 
   public createAttributeDescription = async (
-    arg: Parameters<WorkflowManagerService["createAttributeDescription"]>[0]
+    arg: Parameters<WorkflowManagerService["createAttributeDescription"]>[0],
   ) => {
     if (!this.authentication.current?.clientId) return;
 
@@ -351,7 +366,7 @@ export class WorkflowStore {
   };
 
   public setAttribute = async (
-    arg: Parameters<WorkflowManagerService["setAttribute"]>[0]
+    arg: Parameters<WorkflowManagerService["setAttribute"]>[0],
   ) => {
     if (!this.authentication.current?.clientId) return;
 
@@ -367,14 +382,12 @@ export class WorkflowStore {
   };
 
   public setWorkflowConfig = async (
-    arg: Parameters<WorkflowManagerService["setWorkflowConfig"]>[0]
+    arg: Parameters<WorkflowManagerService["setWorkflowConfig"]>[0],
   ) => {
     if (!this.authentication.current?.clientId) return;
 
     this.updateRequestStatus("setWorkflowConfig", arg, "LOADING");
-    const workflow = await this.workflowManagerService.setWorkflowConfig(
-      arg,
-    );
+    const workflow = await this.workflowManagerService.setWorkflowConfig(arg);
 
     if (workflow.success) {
       this.updateRequestStatus("setWorkflowConfig", arg, "OK");
@@ -385,7 +398,7 @@ export class WorkflowStore {
   };
 
   public setChangeRule = async (
-    arg: Parameters<WorkflowManagerService["setChangeRule"]>[0]
+    arg: Parameters<WorkflowManagerService["setChangeRule"]>[0],
   ) => {
     if (!this.authentication.current?.clientId) return;
 
@@ -401,7 +414,7 @@ export class WorkflowStore {
   };
 
   public moveState = async (
-    arg: Parameters<WorkflowManagerService["moveState"]>[0]
+    arg: Parameters<WorkflowManagerService["moveState"]>[0],
   ) => {
     if (!this.authentication.current?.clientId) return;
 
@@ -441,7 +454,7 @@ export class WorkflowStore {
   };
 
   public loadAttributes = async (
-    arg: Parameters<WorkflowManagerService["getAttributes"]>[0]
+    arg: Parameters<WorkflowManagerService["getAttributes"]>[0],
   ) => {
     if (!this.authentication.current?.clientId) return;
 
@@ -769,11 +782,9 @@ export class WorkflowStore {
     this.subscriptions.minor.push(sub);
   };
 
-  public static requestHash = <
-    K extends keyof WorkflowStore["requestStatus"],
-  >(
+  public static requestHash = <K extends keyof WorkflowStore["requestStatus"]>(
     payload: Parameters<WorkflowStore[K]>[0],
-) => {
+  ) => {
     return JSON.stringify(payload);
   };
 
@@ -788,33 +799,33 @@ export class WorkflowStore {
   };
 
   private updateLocalStorageSession = () => {
-      const sessions: string[] = [];
+    const sessions: string[] = [];
 
-      for (const [sessionId, sessionIdx] of this.registeredSessions) sessions[sessionIdx] = sessionId;
+    for (const [sessionId, sessionIdx] of this.registeredSessions)
+      sessions[sessionIdx] = sessionId;
 
-      localStorage.setItem(REGISTERED_SESSIONS_KEY, sessions.join(";"))
-  }
+    localStorage.setItem(REGISTERED_SESSIONS_KEY, sessions.join(";"));
+  };
 
-  private addSession = (
-      sessionId: string
-  ) => {
-      if (this.registeredSessions.has(sessionId)) return;
+  private addSession = (sessionId: string) => {
+    if (this.registeredSessions.has(sessionId)) return;
 
-      this.registeredSessions.set(sessionId, this.registeredSessions.size);
-      this.updateLocalStorageSession();
-  }
+    this.registeredSessions.set(sessionId, this.registeredSessions.size);
+    this.updateLocalStorageSession();
+  };
 
-  public removeSession = (
-      sessionId: string,
-  ) => {
-      const sessionIdx = this.registeredSessions.get(sessionId);
-      if (!sessionIdx) return;
+  public removeSession = (sessionId: string) => {
+    const sessionIdx = this.registeredSessions.get(sessionId);
+    if (!sessionIdx) return;
 
-      for (const [curSessionId, curSessionIdx] of [...this.registeredSessions.entries()]) 
-          if (curSessionIdx > sessionIdx) this.registeredSessions.set(curSessionId, curSessionIdx - 1);
+    for (const [curSessionId, curSessionIdx] of [
+      ...this.registeredSessions.entries(),
+    ])
+      if (curSessionIdx > sessionIdx)
+        this.registeredSessions.set(curSessionId, curSessionIdx - 1);
 
-      this.updateLocalStorageSession();
-  }
+    this.updateLocalStorageSession();
+  };
 }
 
 class WorkflowManagerService {
@@ -852,13 +863,13 @@ class WorkflowManagerService {
     }
   };
 
-  public createState = async (
-      {newState, workflowId}: {
-
-    newState: RequestNewWorkflowState,
-    workflowId: number,
-      }
-  ) => {
+  public createState = async ({
+    newState,
+    workflowId,
+  }: {
+    newState: RequestNewWorkflowState;
+    workflowId: number;
+  }) => {
     const resParser = parsers.WorkflowStateSchema;
     const parsedNewState =
       parsers.RequestNewWorkflowStateSchema.parse(newState);
@@ -896,12 +907,13 @@ class WorkflowManagerService {
     }
   };
 
-  public createEntity = async (
-      {newEntity, workflowId}: {
-    newEntity: RequestNewWorkflowEntity,
-    workflowId: number,
-      }
-  ) => {
+  public createEntity = async ({
+    newEntity,
+    workflowId,
+  }: {
+    newEntity: RequestNewWorkflowEntity;
+    workflowId: number;
+  }) => {
     const resParser = parsers.WorkflowEntitySchema;
     const parsedNewEntity =
       parsers.RequestNewWorkflowEntitySchema.parse(newEntity);
@@ -1072,16 +1084,13 @@ class WorkflowManagerService {
     }
   };
 
-  public setWorkflowConfig = async (
-      {
-          workflowId,
-          config,
-      }: {
-    workflowId: number,
-    config: RequestUpdateWorkflowConfig,
-
-      }
-  ) => {
+  public setWorkflowConfig = async ({
+    workflowId,
+    config,
+  }: {
+    workflowId: number;
+    config: RequestUpdateWorkflowConfig;
+  }) => {
     const resParser = parsers.WorkflowSchema;
     try {
       const parsedConfig =

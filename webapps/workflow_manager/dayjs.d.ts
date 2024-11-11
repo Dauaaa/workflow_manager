@@ -1,6 +1,6 @@
 import "dayjs";
 declare module "dayjs" {
-    interface Dayjs {
-        fromNow: (withoutSuffix?: boolean) => string;
-    }
+  interface Dayjs {
+    fromNow: (withoutSuffix?: boolean) => string;
+  }
 }

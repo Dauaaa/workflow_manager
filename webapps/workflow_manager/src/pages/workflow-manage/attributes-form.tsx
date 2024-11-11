@@ -32,7 +32,7 @@ import {
   WORKFLOW_ATTRIBUTE_TYPES,
 } from "@/store/workflow-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UpdateIcon } from "@radix-ui/react-icons";
+import { CubeIcon, UpdateIcon } from "@radix-ui/react-icons";
 import Decimal from "decimal.js";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
@@ -73,18 +73,7 @@ export const AttributesForm = observer(
     ];
 
     return (
-      <div className="flex flex-col gap-8 font-mono">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button>Add attribute</Button>
-          </PopoverTrigger>
-          <PopoverContent onClick={(e) => e.stopPropagation()}>
-            <NewAttributeDescriptionForm
-              refType={refType}
-              workflowId={workflowId}
-            />
-          </PopoverContent>
-        </Popover>
+      <div className="flex gap-x-16 gap-y-8 flex-wrap">
         {descriptions.map((desc) => (
           <SetAttributeForm
             baseEntityId={baseEntityId}
@@ -94,143 +83,18 @@ export const AttributesForm = observer(
             key={desc.name}
           />
         ))}
+        {descriptions.length === 0 ? (
+          <div className="flex flex-col my-auto gap-2 w-full">
+            <CubeIcon className="h-20 w-20 mx-auto" />
+            <p className="text-center font-mono">No attributes.</p>
+            <p className="text-center font-mono">
+              Create attributes in the workflow menu.
+            </p>
+          </div>
+        ) : null}
       </div>
     );
   },
-);
-
-const NewAttributeDescriptionFormSchema =
-  parsers.RequestNewAttributeDescriptionSchema;
-type NewAttributeDescriptionFormType = z.infer<
-  typeof NewAttributeDescriptionFormSchema
->;
-
-const NewAttributeDescriptionForm = ({
-  workflowId,
-  refType,
-}: {
-  workflowId: number;
-  refType: WorkflowAttributeReferenceType;
-}) => {
-  const form = useForm<NewAttributeDescriptionFormType>({
-    resolver: zodResolver(NewAttributeDescriptionFormSchema),
-    defaultValues: {
-      refType,
-    },
-  });
-
-  const workflowStore = useWorkflowStore();
-
-  return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit((description) => {
-          workflowStore.createAttributeDescription({
-            workflowId,
-            ...description,
-          });
-        })}
-        className="space-y-8"
-      >
-        <NameField form={form} />
-        <RefTypeField form={form} />
-        <AttrType form={form} />
-        <FormSubmitter
-          schema={NewAttributeDescriptionFormSchema}
-          form={form as any}
-          closeContext="popover"
-        >
-          Submit
-        </FormSubmitter>
-      </form>
-    </Form>
-  );
-};
-
-interface CommonAttributeDescriptionFieldProps {
-  form: UseFormReturn<NewAttributeDescriptionFormType>;
-}
-
-const NameField = ({ form }: CommonAttributeDescriptionFieldProps) => (
-  <FormField
-    control={form.control}
-    name="name"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Attribute name</FormLabel>
-        <FormControl>
-          <Input
-            placeholder="my-attribute"
-            {...field}
-            onChange={(e) => {
-              field.onChange(e.target.value);
-              form.trigger("name");
-            }}
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
-);
-
-const RefTypeField = ({ form }: CommonAttributeDescriptionFieldProps) => (
-  <FormField
-    control={form.control}
-    name="refType"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Entity type</FormLabel>
-        <FormControl>
-          <Select {...field} open={false}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {WORKFLOW_ATTRIBUTE_REFERENCE_TYPES.map((ty) => (
-                  <SelectItem key={ty} value={ty} className="font-mono">
-                    {WorkflowAttributeReferenceTypePretty[ty]}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
-);
-
-const AttrType = ({ form }: CommonAttributeDescriptionFieldProps) => (
-  <FormField
-    control={form.control}
-    name="attrType"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Attribute type</FormLabel>
-        <FormControl>
-          <Select {...field} onValueChange={field.onChange}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Attribute types</SelectLabel>
-                {WORKFLOW_ATTRIBUTE_TYPES.map((ty) => (
-                  <SelectItem key={ty} value={ty} className="font-mono">
-                    {WorkflowAttributeTypePretty[ty]}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
 );
 
 const SetAttributeFormSchema = parsers.RequestNewAttributeSchema;
@@ -302,7 +166,7 @@ const AttrField = observer((props: CommonAttributeFormFieldProps) => {
           control={props.form.control}
           name={name}
           render={({ field }) => (
-            <FormItem className="border-l border-foreground pl-4 flex flex-col gap-2">
+            <FormItem className="border-l border-foreground pl-4 flex flex-col gap-2 w-96">
               <FormLabel>{formLabel}</FormLabel>
               <FormControl>
                 <EnumField {...props} field={field} />
