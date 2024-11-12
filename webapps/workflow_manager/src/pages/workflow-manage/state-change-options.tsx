@@ -8,18 +8,6 @@ export const StateChangeOptions = observer(
   ({ workflowId, entityId }: { workflowId: number; entityId: number }) => {
     const workflowStore = useWorkflowStore();
 
-    // TODO: uncomment after patched store to allow calling
-    // multiple times without making multiple requests
-    // useEffect(() => {
-    //   void workflowStore.loadAttributeDescriptions(workflowId);
-    //   void workflowStore.loadAttributes({
-    //     workflowId,
-    //     baseEntityId,
-    //     refType,
-    //   });
-    //   void workflowStore.loadStates(workflowId);
-    // }, []);
-
     const entity = workflowStore.workflowEntities.get(entityId);
     const states = workflowStore.workflowStatesByWorkflow.get(workflowId);
     const curState =
@@ -32,6 +20,7 @@ export const StateChangeOptions = observer(
           return toState
             ? [
                 <ChangeStateItem
+                  key={rule.toId}
                   state={toState}
                   rule={rule}
                   entityId={entityId}

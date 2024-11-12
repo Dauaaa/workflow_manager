@@ -9,7 +9,6 @@ internal_port = 8080
 force_https = true
 auto_stop_machines = "off"
 auto_start_machines = false
-# startup is so slow, this is probably necessary
 min_machines_running = 1
 
 [http_service.concurrency]

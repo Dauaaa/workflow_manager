@@ -27,7 +27,13 @@ const FormSchema = z.object({
 
 type FormType = z.infer<typeof FormSchema>;
 
-export const NewEntityForm = ({ workflowId }: { workflowId: number }) => {
+export const NewEntityForm = ({
+  workflowId,
+  inDialog,
+}: {
+  workflowId: number;
+  inDialog?: boolean;
+}) => {
   const form = useForm<FormType>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -60,7 +66,11 @@ export const NewEntityForm = ({ workflowId }: { workflowId: number }) => {
             </FormItem>
           )}
         />
-        <FormSubmitter schema={FormSchema} form={form as any}>
+        <FormSubmitter
+          schema={FormSchema}
+          form={form as any}
+          closeContext={inDialog ? "dialog" : undefined}
+        >
           Submit
         </FormSubmitter>
       </form>

@@ -6,7 +6,8 @@ import { z } from "zod";
 type DayjsRev = z.ZodEffects<z.ZodType<Dayjs, z.ZodTypeDef, Dayjs>, string, Dayjs>;
 
 export const standardUndefined = <T>(x: T | undefined | null): T | undefined => x === undefined || x === null ? undefined : x;
-export const DayjsSchema = z.string().or(z.number()).transform(date => dayjs(date));
+export const DayjsTimeSchema = z.string().or(z.number()).transform(date => dayjs(date));
+export const DayjsDateSchema = z.string().transform(date => dayjs(date.slice(0, 10)));
 export const DayjsTimeSchemaRev = z.unknown().refine(date => dayjs.isDayjs(date)).transform(date => date.toISOString()) as unknown as DayjsRev;
 export const DayjsDateSchemaRev = z.unknown().refine(date => dayjs.isDayjs(date)).transform(date => date.format("YYYY-MM-DD")) as unknown as DayjsRev;
 export const DecimalSchema = z.coerce.string().transform(value => new Decimal(value));

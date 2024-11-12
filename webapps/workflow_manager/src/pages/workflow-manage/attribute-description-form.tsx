@@ -69,10 +69,6 @@ export const NewAttributeDescriptionForm = ({
 
   const workflowStore = useWorkflowStore();
 
-  const watch = form.watch();
-
-  console.log(watch);
-
   return (
     <Form {...form}>
       <form

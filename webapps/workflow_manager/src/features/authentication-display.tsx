@@ -10,13 +10,25 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useWorkflowStore } from "@/store/context";
-import { InfoIcon, MenuIcon, ShareIcon, UserIcon } from "lucide-react";
+import {
+  HouseIcon,
+  InfoIcon,
+  MenuIcon,
+  ShareIcon,
+  UserIcon,
+} from "lucide-react";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Link } from "react-router-dom";
 
 const sessionLink = (clientId: string) =>
   `https://workflow-manager-client.fly.dev/workflows?clientId=${clientId}`;
@@ -83,18 +95,13 @@ const DesktopMenu = observer(() => {
     "
     >
       <Dialog>
-        <Button
-          onClick={handleUserButtonClick}
-          onBlur={handleUserButtonBlur}
-          className="relative w-16"
-        >
-          <UserIcon />
+        <div className="relative">
           <DialogTrigger asChild>
             <Button
               onMouseDown={handleChildOnMouseDown}
               onClick={handleChildOnClick}
               className={cn("transition-all duration-200 absolute", {
-                "translate-x-[6.5rem]": isOpen.open,
+                "translate-x-[5.5rem]": isOpen.open,
                 "scale-0": !isOpen.open,
               })}
             >
@@ -114,7 +121,14 @@ const DesktopMenu = observer(() => {
           >
             Logout
           </Button>
-        </Button>
+          <Button
+            onClick={handleUserButtonClick}
+            onBlur={handleUserButtonBlur}
+            className="w-16"
+          >
+            <UserIcon />
+          </Button>
+        </div>
         <DialogContent className="max-w-[34rem]">
           <DialogTitle>Share your session with friends!</DialogTitle>
           <DialogDescription>
@@ -184,27 +198,30 @@ const MobileAuthMenu = () => {
   };
 
   return (
-    <div
-      className="
-fixed
-md:hidden
-top-8 left-8
-"
-    >
+    <div className={cn("fixed md:hidden right-8 bottom-12")}>
       <Sheet>
         <SheetTrigger asChild>
           <Button>
             <MenuIcon />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left">
+        <SheetContent side="right">
           <div className="flex flex-col justify-between h-full px-4">
+            <SheetClose asChild>
+              <Link to="/workflows" className="font-mono font-bold">
+                <Button className="w-full">
+                  <HouseIcon /> Go home
+                </Button>
+              </Link>
+            </SheetClose>
             <div className="flex flex-col gap-3">
               {auth?.clientId ? (
                 <>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button className="w-full">Session QRCode</Button>
+                      <Button className="w-full" variant="outline">
+                        Session QRCode
+                      </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogTitle>Session QR code</DialogTitle>
@@ -223,6 +240,7 @@ top-8 left-8
                     <Button
                       onClick={() => void navigator.share(shareObject)}
                       className="w-full"
+                      variant="outline"
                     >
                       <ShareIcon /> Share sessions
                     </Button>
@@ -230,19 +248,21 @@ top-8 left-8
                     <CopyButton
                       content={sessionLink(auth.clientId)}
                       className="w-full"
+                      copyButtonVariant="outline"
                     >
                       Copy session link
                     </CopyButton>
                   )}
                 </>
               ) : null}
+              <Button
+                onClick={() => workflowStore.setAuthentication()}
+                className="w-full"
+                variant="destructive"
+              >
+                Logout
+              </Button>
             </div>
-            <Button
-              onClick={() => workflowStore.setAuthentication()}
-              className="w-fit"
-            >
-              Logout
-            </Button>
           </div>
         </SheetContent>
       </Sheet>

@@ -13,7 +13,6 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -25,11 +24,8 @@ import {
   WorkflowAttribute,
   WorkflowAttributeDescription,
   WorkflowAttributeReferenceType,
-  WorkflowAttributeReferenceTypePretty,
   WorkflowAttributeType,
   WorkflowAttributeTypePretty,
-  WORKFLOW_ATTRIBUTE_REFERENCE_TYPES,
-  WORKFLOW_ATTRIBUTE_TYPES,
 } from "@/store/workflow-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CubeIcon, UpdateIcon } from "@radix-ui/react-icons";
@@ -38,12 +34,9 @@ import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { ControllerRenderProps, useForm, UseFormReturn } from "react-hook-form";
 import { z } from "zod";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { FormSubmitter } from "@/components/form-submitter";
+import { DatePicker } from "@/components/ui/date-picker";
+import { DateTimePicker } from "@/components/ui/time-picker/date-time-picker";
+import { Dayjs } from "dayjs";
 
 export const AttributesForm = observer(
   ({
@@ -58,7 +51,6 @@ export const AttributesForm = observer(
     const workflowStore = useWorkflowStore();
 
     React.useEffect(() => {
-      void workflowStore.loadAttributeDescriptions(workflowId);
       void workflowStore.loadAttributes({
         workflowId,
         baseEntityId,
@@ -73,7 +65,7 @@ export const AttributesForm = observer(
     ];
 
     return (
-      <div className="flex gap-x-16 gap-y-8 flex-wrap">
+      <div className="flex flex-col md:flex-row gap-x-16 gap-y-8 md:flex-wrap">
         {descriptions.map((desc) => (
           <SetAttributeForm
             baseEntityId={baseEntityId}
@@ -100,35 +92,37 @@ export const AttributesForm = observer(
 const SetAttributeFormSchema = parsers.RequestNewAttributeSchema;
 type SetAttributeFormType = z.input<typeof SetAttributeFormSchema>;
 
-const SetAttributeForm = (props: {
-  refType: WorkflowAttributeReferenceType;
-  workflowId: number;
-  descriptionName: string;
-  baseEntityId: number;
-}) => {
-  const form = useForm<SetAttributeFormType>({
-    resolver: zodResolver(SetAttributeFormSchema),
-    defaultValues: {},
-  });
+const SetAttributeForm = observer(
+  (props: {
+    refType: WorkflowAttributeReferenceType;
+    workflowId: number;
+    descriptionName: string;
+    baseEntityId: number;
+  }) => {
+    const form = useForm<SetAttributeFormType>({
+      resolver: zodResolver(SetAttributeFormSchema),
+      defaultValues: {},
+    });
 
-  const workflowStore = useWorkflowStore();
+    const workflowStore = useWorkflowStore();
 
-  const description = workflowStore.getAttributeDescription(props);
-  const attr = workflowStore.getAttribute(props);
+    const description = workflowStore.getAttributeDescription(props);
+    const attr = workflowStore.getAttribute(props);
 
-  return description ? (
-    <Form {...form}>
-      <form>
-        <AttrField
-          description={description}
-          attr={attr}
-          form={form}
-          baseEntityId={props.baseEntityId}
-        />
-      </form>
-    </Form>
-  ) : null;
-};
+    return description ? (
+      <Form {...form}>
+        <form className="ml-4 md:ml-0">
+          <AttrField
+            description={description}
+            attr={attr}
+            form={form}
+            baseEntityId={props.baseEntityId}
+          />
+        </form>
+      </Form>
+    ) : null;
+  },
+);
 
 interface CommonAttributeFormFieldProps {
   form: UseFormReturn<SetAttributeFormType>;
@@ -161,21 +155,6 @@ const AttrField = observer((props: CommonAttributeFormFieldProps) => {
 
   return (
     <>
-      {name === "enumeration" ? (
-        <FormField
-          control={props.form.control}
-          name={name}
-          render={({ field }) => (
-            <FormItem className="border-l border-foreground pl-4 flex flex-col gap-2 w-96">
-              <FormLabel>{formLabel}</FormLabel>
-              <FormControl>
-                <EnumField {...props} field={field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      ) : null}
       {name === "text" ||
       name === "integer" ||
       name === "decimal" ||
@@ -187,14 +166,17 @@ const AttrField = observer((props: CommonAttributeFormFieldProps) => {
             <FormItem className="border-l border-foreground pl-4 flex flex-col gap-2">
               <FormLabel>{formLabel}</FormLabel>
               <FormControl>
-                <TextField {...props} field={field} />
+                <TextField {...props} field={field} attr={attr} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
       ) : null}
-      {name === "flag" ? (
+      {name === "date" ||
+      name === "flag" ||
+      name === "timestamp" ||
+      name === "enumeration" ? (
         <FormField
           control={props.form.control}
           name={name}
@@ -202,37 +184,7 @@ const AttrField = observer((props: CommonAttributeFormFieldProps) => {
             <FormItem className="border-l border-foreground pl-4 flex flex-col gap-2">
               <FormLabel>{formLabel}</FormLabel>
               <FormControl>
-                <FlagField {...props} field={field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      ) : null}
-      {name === "date" ? ( // TODO
-        <FormField
-          control={props.form.control}
-          name={name}
-          render={({ field }) => (
-            <FormItem className="border-l border-foreground pl-4 flex flex-col gap-2">
-              <FormLabel>{formLabel}</FormLabel>
-              <FormControl>
-                {/* <FlagField {...props} field={field} /> */}
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      ) : null}
-      {name === "timestamp" ? ( // TODO
-        <FormField
-          control={props.form.control}
-          name={name}
-          render={({ field }) => (
-            <FormItem className="border-l border-foreground pl-4 flex flex-col gap-2">
-              <FormLabel>{formLabel}</FormLabel>
-              <FormControl>
-                {/* <FlagField {...props} field={field} /> */}
+                <NonTextField {...props} field={field} attr={attr} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -243,32 +195,77 @@ const AttrField = observer((props: CommonAttributeFormFieldProps) => {
   );
 });
 
-const FlagField = ({
+const dayjsIsDifferent = (d1?: Dayjs, d2?: Dayjs) => {
+  if (d1 === undefined && d2 === undefined) return false;
+  if (d1 === undefined || d2 === undefined) return true;
+
+  return !d1.isSame(d2);
+};
+
+const isDifferent = (
+  description: WorkflowAttributeDescription,
+  v1: Dayjs | string | boolean | undefined,
+  v2: Dayjs | string | boolean | undefined,
+) => {
+  switch (description.attrType) {
+    case "DATE":
+    case "TIMESTAMP": {
+      const v1Typed = v1 as Dayjs | undefined;
+      const v2Typed = v2 as Dayjs | undefined;
+
+      return dayjsIsDifferent(v1Typed, v2Typed);
+    }
+    case "FLAG":
+    case "ENUMERATION": {
+      return v1 !== v2;
+    }
+  }
+
+  return true;
+};
+
+const NonTextField = ({
   field,
   form,
   description,
   baseEntityId,
   attr,
 }: CommonAttributeFormFieldProps & {
-  field: ControllerRenderProps<SetAttributeFormType, "flag">;
+  field: ControllerRenderProps<
+    SetAttributeFormType,
+    "date" | "timestamp" | "flag" | "enumeration"
+  >;
 }) => {
-  const value = form.watch("flag");
+  const value = form.watch("date");
   const workflowStore = useWorkflowStore();
 
   React.useEffect(() => {
-    if (attr?.flag !== value)
+    if (isDifferent(description, attr?.date, value)) {
       void form.handleSubmit((attr) => {
-        workflowStore.setAttribute({
+        return workflowStore.setAttribute({
           refType: description.refType,
           baseEntityId,
           attributeName: description.name,
           attr: attr as any,
         });
       })();
+    }
   }, [value]);
 
-  return (
-    <div className="flex justify-start gap-4 align-bottom">
+  return description.attrType === "DATE" ? (
+    <DatePicker
+      classNames={{ inputBox: "w-[19rem]" }}
+      date={field.value as Dayjs | undefined}
+      {...field}
+    />
+  ) : description.attrType === "TIMESTAMP" ? (
+    <DateTimePicker
+      classNames={{ inputBox: "w-[19rem]" }}
+      {...field}
+      value={field.value as Dayjs | undefined}
+    />
+  ) : description.attrType === "FLAG" ? (
+    <div className="flex justify-start gap-4 align-bottom w-[19rem]">
       <span
         className={cn("transition-all duration-150", {
           "opacity-50": value,
@@ -276,7 +273,10 @@ const FlagField = ({
       >
         false
       </span>
-      <Switch checked={field.value} onCheckedChange={field.onChange} />
+      <Switch
+        checked={field.value as boolean | undefined}
+        onCheckedChange={field.onChange}
+      />
       <span
         className={cn("transition-all duration-150", {
           "opacity-50": !value,
@@ -285,14 +285,34 @@ const FlagField = ({
         true
       </span>
     </div>
-  );
+  ) : description.attrType === "ENUMERATION" ? (
+    <Select
+      value={field.value as string | undefined}
+      onValueChange={field.onChange}
+    >
+      <SelectTrigger className="w-[19rem]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          {(description.enumDescription ?? []).map((ty) => (
+            <SelectItem key={ty} value={ty} className="font-mono">
+              {ty}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  ) : null;
 };
 
 const textInputToFieldValue = (
   attrType: WorkflowAttributeType,
   value?: string,
 ) => {
-  let ret;
+  let ret:
+    | { value?: Decimal | bigint | number | string; error?: boolean }
+    | undefined;
   switch (attrType) {
     case "TEXT":
       ret = { value };
@@ -314,7 +334,7 @@ const textInputToFieldValue = (
     }
   }
 
-  return ret;
+  return ret ?? { error: true };
 };
 
 type TextInputType = number | string | undefined | bigint | Decimal;
@@ -395,45 +415,3 @@ const TextField = observer(
     );
   },
 );
-
-const EnumField = ({
-  field,
-  form,
-  description,
-  baseEntityId,
-  attr,
-}: CommonAttributeFormFieldProps & {
-  field: ControllerRenderProps<SetAttributeFormType, "enumeration">;
-}) => {
-  const value = form.watch("enumeration");
-  const workflowStore = useWorkflowStore();
-
-  React.useEffect(() => {
-    if (attr?.enumeration !== value)
-      void form.handleSubmit((attr) => {
-        workflowStore.setAttribute({
-          refType: description.refType,
-          baseEntityId,
-          attributeName: description.name,
-          attr: attr as any,
-        });
-      })();
-  }, [value]);
-
-  return (
-    <Select {...field} onValueChange={field.onChange}>
-      <SelectTrigger>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          {(description.enumDescription ?? []).map((ty) => (
-            <SelectItem key={ty} value={ty} className="font-mono">
-              {ty}
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
-  );
-};

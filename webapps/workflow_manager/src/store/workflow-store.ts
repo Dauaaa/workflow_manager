@@ -2,7 +2,8 @@ import createClient, { HeadersOptions } from "openapi-fetch";
 import type { paths } from "workflow_manager_api";
 import { z } from "zod";
 import {
-  DayjsSchema,
+  DayjsTimeSchema,
+  DayjsDateSchema,
   standardUndefined,
   Assert,
   Extends,
@@ -11,9 +12,9 @@ import {
   IntegerSchemaRev,
   DecimalSchemaRev,
   DayjsTimeSchemaRev,
-  UnionToFnIntersection,
   UnionToIntersection,
   PartialPick,
+  DayjsDateSchemaRev,
 } from "common_schemas";
 // need these empty imports for typing to work
 import "dayjs";
@@ -32,23 +33,15 @@ const REGISTERED_SESSIONS_KEY = "registered-sessions";
 
 // simple types for user feedback
 type RequestStatus = "OK" | "ERROR" | "LOADING";
-type RequestStatusMapInner<T> =
-  UnionToFnIntersection<keyof T> extends () => infer K
+type RequestStatusMap<T> = UnionToIntersection<
+  keyof T extends infer K
     ? K extends keyof T
-      ? // get all functions
-        T[K] extends (...args: any) => any
-        ? // get all functions that return a promise
-          ReturnType<T[K]> extends Promise<any>
-          ? // function that returns promise!
-            | { [Key in K]: Map<string, RequestStatus> }
-              | RequestStatusMapInner<Omit<T, K>>
-          : // function that doesn't return promise
-            RequestStatusMapInner<Omit<T, K>>
-        : // not function
-          never
+      ? T[K] extends (...args: any) => Promise<any>
+        ? { [Key in K]: Map<string, RequestStatus> }
+        : never
       : never
-    : never;
-type RequestStatusMap<T> = UnionToIntersection<RequestStatusMapInner<T>>;
+    : never
+>;
 
 /**
  * All in one store. It guarantees the application state is in sync with the servers.
@@ -120,7 +113,6 @@ export class WorkflowStore {
 
     const registeredSessions = localStorage.getItem(REGISTERED_SESSIONS_KEY);
 
-    console.log({ registeredSessions });
     if (registeredSessions) {
       const UUIDSchema = z.string().uuid();
 
@@ -171,24 +163,25 @@ export class WorkflowStore {
     new Map();
 
   // omit request status otherwise the type will be recursive
-  public requestStatus: RequestStatusMap<WorkflowStore> = {
-    loadState: new Map(),
-    moveState: new Map(),
-    loadEntity: new Map(),
-    loadStates: new Map(),
-    createState: new Map(),
-    createEntity: new Map(),
-    loadWorkflow: new Map(),
-    setAttribute: new Map(),
-    loadWorkflows: new Map(),
-    setChangeRule: new Map(),
-    createWorkflow: new Map(),
-    loadAttributes: new Map(),
-    setWorkflowConfig: new Map(),
-    loadEntitiesByState: new Map(),
-    loadAttributeDescriptions: new Map(),
-    createAttributeDescription: new Map(),
-  };
+  public requestStatus: RequestStatusMap<Omit<WorkflowStore, "requestStatus">> =
+    {
+      loadState: new Map(),
+      moveState: new Map(),
+      loadEntity: new Map(),
+      loadStates: new Map(),
+      createState: new Map(),
+      createEntity: new Map(),
+      loadWorkflow: new Map(),
+      setAttribute: new Map(),
+      loadWorkflows: new Map(),
+      setChangeRule: new Map(),
+      createWorkflow: new Map(),
+      loadAttributes: new Map(),
+      setWorkflowConfig: new Map(),
+      loadEntitiesByState: new Map(),
+      loadAttributeDescriptions: new Map(),
+      createAttributeDescription: new Map(),
+    };
 
   public getAttributeMapByRefType = (
     refType: WorkflowAttributeReferenceType,
@@ -375,7 +368,7 @@ export class WorkflowStore {
 
     if (attribute.success) {
       this.updateRequestStatus("setAttribute", arg, "OK");
-      this.upsertAttributes(arg[0].refType, [attribute.data]);
+      this.upsertAttributes(arg.refType, [attribute.data]);
     } else {
       this.updateRequestStatus("setAttribute", arg, "ERROR");
     }
@@ -782,10 +775,26 @@ export class WorkflowStore {
     this.subscriptions.minor.push(sub);
   };
 
+  /**
+   * Order all objects so they match if key/values are the same independent of order
+   */
+  private static orderedEntries = (val: unknown) => {
+    if (!Array.isArray(val) && val !== null && typeof val === "object") {
+      return Object.entries(val)
+        .sort(([key1, _val1], [key2, _val2]) => (key1 > key2 ? 1 : -1))
+        .map(([key, val]) => [key, this.orderedEntries(val)]);
+    }
+
+    return val;
+  };
+
+  /**
+   * Will infinite loop if payload references itself!
+   */
   public static requestHash = <K extends keyof WorkflowStore["requestStatus"]>(
     payload: Parameters<WorkflowStore[K]>[0],
   ) => {
-    return JSON.stringify(payload);
+    return JSON.stringify(WorkflowStore.orderedEntries(payload));
   };
 
   private updateRequestStatus = <
@@ -1588,9 +1597,9 @@ export module parsers {
     name: z.string().max(ENTITY_MAX_NAME_LENGTH),
     userId: z.string().uuid(),
     clientId: z.string().uuid(),
-    creationTime: DayjsSchema,
-    updateTime: DayjsSchema,
-    deletionTime: DayjsSchema.nullish().transform(standardUndefined),
+    creationTime: DayjsTimeSchema,
+    updateTime: DayjsTimeSchema,
+    deletionTime: DayjsTimeSchema.nullish().transform(standardUndefined),
   });
 
   export const WorkflowAttributeRuleSchema = z.object({
@@ -1607,8 +1616,8 @@ export module parsers {
     parentWorkflowId: z.number(),
     refType: z.enum(WORKFLOW_ATTRIBUTE_REFERENCE_TYPES),
     attrType: z.enum(WORKFLOW_ATTRIBUTE_TYPES),
-    creationTime: DayjsSchema,
-    updateTime: DayjsSchema,
+    creationTime: DayjsTimeSchema,
+    updateTime: DayjsTimeSchema,
     expression:
       WorkflowAttributeExprRuleSchema.nullish().transform(standardUndefined),
     regex:
@@ -1621,14 +1630,14 @@ export module parsers {
     descriptionName: z.string(),
     parentWorkflowId: z.number(),
     baseEntityId: z.number(),
-    creationTime: DayjsSchema,
-    updateTime: DayjsSchema,
+    creationTime: DayjsTimeSchema,
+    updateTime: DayjsTimeSchema,
     integer: IntegerSchema.nullish().transform(standardUndefined),
     floating: z.number().nullish().transform(standardUndefined),
     enumeration: z.string().nullish().transform(standardUndefined),
     decimal: DecimalSchema.nullish().transform(standardUndefined),
-    date: DayjsSchema.nullish().transform(standardUndefined),
-    timestamp: DayjsSchema.nullish().transform(standardUndefined),
+    date: DayjsDateSchema.nullish().transform(standardUndefined),
+    timestamp: DayjsTimeSchema.nullish().transform(standardUndefined),
     flag: z.boolean().nullish().transform(standardUndefined),
     text: z.string().nullish().transform(standardUndefined),
   });
@@ -1642,8 +1651,8 @@ export module parsers {
     fromId: z.number(),
     toId: z.number(),
     expressions: z.string().array(),
-    creationTime: DayjsSchema,
-    updateTime: DayjsSchema,
+    creationTime: DayjsTimeSchema,
+    updateTime: DayjsTimeSchema,
   });
 
   export const WorkflowStateSchema = EntitySchema.extend({
@@ -1681,7 +1690,7 @@ export module parsers {
     floating: z.number().optional(),
     enumeration: z.string().optional(),
     decimal: DecimalSchemaRev.optional(),
-    date: DayjsTimeSchemaRev.optional(),
+    date: DayjsDateSchemaRev.optional(),
     timestamp: DayjsTimeSchemaRev.optional(),
     flag: z.boolean().optional(),
     text: z.string().optional(),
@@ -1706,7 +1715,7 @@ export module parsers {
 
   export const ResponseEntityIdsByStateSchema = z.object({
     ids: z.number().array(),
-    lastCurrentEntitiesChange: DayjsSchema,
+    lastCurrentEntitiesChange: DayjsTimeSchema,
   });
 }
 
