@@ -29,7 +29,6 @@ import {
 } from "@/store/workflow-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CubeIcon, UpdateIcon } from "@radix-ui/react-icons";
-import Decimal from "decimal.js";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { ControllerRenderProps, useForm, UseFormReturn } from "react-hook-form";
@@ -155,10 +154,7 @@ const AttrField = observer((props: CommonAttributeFormFieldProps) => {
 
   return (
     <>
-      {name === "text" ||
-      name === "integer" ||
-      name === "decimal" ||
-      name === "floating" ? (
+      {name === "text" || name === "integer" || name === "floating" ? (
         <FormField
           control={props.form.control}
           name={name}
@@ -324,23 +320,19 @@ const textInputToFieldValue = (
   attrType: WorkflowAttributeType,
   value?: string,
 ) => {
-  let ret:
-    | { value?: Decimal | bigint | number | string; error?: boolean }
-    | undefined;
+  let ret: { value?: bigint | number | string; error?: boolean } | undefined;
   switch (attrType) {
     case "TEXT":
       ret = { value };
       break;
     case "INTEGER":
-    case "DECIMAL":
     case "FLOATING": {
       if (value) {
         try {
           if (attrType === "FLOATING") {
             if (Number.isNaN(Number(value))) throw "";
             ret = { value: Number(value) };
-          } else if (attrType === "INTEGER") ret = { value: BigInt(value) };
-          else ret = { value: new Decimal(value) };
+          } else ret = { value: BigInt(value) };
         } catch {
           ret = { error: true };
         }
@@ -351,10 +343,9 @@ const textInputToFieldValue = (
   return ret ?? { error: true };
 };
 
-type TextInputType = number | string | undefined | bigint | Decimal;
+type TextInputType = number | string | undefined | bigint;
 
 const valuesEq = (a: TextInputType, b: TextInputType) => {
-  if (a instanceof Decimal && b instanceof Decimal) return a.eq(b);
   return a === b;
 };
 
@@ -367,7 +358,7 @@ const TextField = observer(
   }: CommonAttributeFormFieldProps & {
     field: ControllerRenderProps<
       SetAttributeFormType,
-      "text" | "integer" | "decimal" | "floating"
+      "text" | "integer" | "floating"
     >;
   }) => {
     const workflowStore = useWorkflowStore();

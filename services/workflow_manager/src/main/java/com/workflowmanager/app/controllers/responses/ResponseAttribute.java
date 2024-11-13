@@ -3,7 +3,6 @@ package com.workflowmanager.app.controllers.responses;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.WorkflowAttribute;
 import jakarta.validation.constraints.NotNull;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
 
@@ -17,10 +16,6 @@ public class ResponseAttribute {
   public String integer;
   public Double floating;
   public String enumeration;
-  // return string otherwise it'll be set as number in swagger :/
-  // was trying this before:
-  // @JsonFormat(shape = JsonFormat.Shape.STRING)
-  public String decimal;
   public Date date;
   public Instant timestamp;
   public Boolean flag;
@@ -38,8 +33,6 @@ public class ResponseAttribute {
     if (i != null) this.integer = i.toString();
     this.floating = attribute.getFloating();
     this.enumeration = attribute.getEnumeration();
-    BigDecimal d = attribute.getDecimal();
-    if (d != null) this.decimal = d.toString();
     this.date = attribute.getDate();
     this.timestamp = attribute.getTimestamp();
     this.flag = attribute.getFlag();

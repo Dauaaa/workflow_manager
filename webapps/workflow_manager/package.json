@@ -20,7 +20,6 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
-    "decimal.js": "^10.4.3",
     "lucide-react": "^0.454.0",
     "mobx": "^6.13.5",
     "mobx-react-lite": "^4.0.7",

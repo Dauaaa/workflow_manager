@@ -8,9 +8,7 @@ import {
   Assert,
   Extends,
   IntegerSchema,
-  DecimalSchema,
   IntegerSchemaRev,
-  DecimalSchemaRev,
   DayjsTimeSchemaRev,
   UnionToIntersection,
   PartialPick,
@@ -18,7 +16,6 @@ import {
 } from "common_schemas";
 // need these empty imports for typing to work
 import "dayjs";
-import "decimal.js";
 import { makeObservable, observable, action } from "mobx";
 import { v4 } from "uuid";
 
@@ -1572,7 +1569,6 @@ export const WORKFLOW_ATTRIBUTE_TYPES = [
   "INTEGER",
   "FLOATING",
   "ENUMERATION",
-  "DECIMAL",
   "DATE",
   "TIMESTAMP",
   "FLAG",
@@ -1583,7 +1579,6 @@ export const WorkflowAttributeTypePretty = {
   INTEGER: "integer",
   FLOATING: "floating",
   ENUMERATION: "enumeration",
-  DECIMAL: "decimal",
   DATE: "date",
   TIMESTAMP: "timestamp",
   FLAG: "flag",
@@ -1636,7 +1631,6 @@ export module parsers {
     integer: IntegerSchema.nullish().transform(standardUndefined),
     floating: z.number().nullish().transform(standardUndefined),
     enumeration: z.string().nullish().transform(standardUndefined),
-    decimal: DecimalSchema.nullish().transform(standardUndefined),
     date: DayjsDateSchema.nullish().transform(standardUndefined),
     timestamp: DayjsTimeSchema.nullish().transform(standardUndefined),
     flag: z.boolean().nullish().transform(standardUndefined),
@@ -1692,7 +1686,6 @@ export module parsers {
     integer: IntegerSchemaRev.optional(),
     floating: z.number().optional(),
     enumeration: z.string().optional(),
-    decimal: DecimalSchemaRev.optional(),
     date: DayjsDateSchemaRev.optional(),
     timestamp: DayjsTimeSchemaRev.optional(),
     flag: z.boolean().optional(),

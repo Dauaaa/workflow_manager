@@ -153,8 +153,6 @@ public class ChangeStateRulesCEL {
         return CelTypes.INT64;
       case TEXT:
       case ENUMERATION:
-      case DECIMAL:
-        return CelTypes.STRING;
       case FLAG:
         return CelTypes.BOOL;
       case FLOATING:

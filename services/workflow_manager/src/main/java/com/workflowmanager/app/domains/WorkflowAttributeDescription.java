@@ -153,7 +153,6 @@ public class WorkflowAttributeDescription {
     INTEGER,
     FLOATING,
     ENUMERATION,
-    DECIMAL,
     DATE,
     TIMESTAMP,
     FLAG,

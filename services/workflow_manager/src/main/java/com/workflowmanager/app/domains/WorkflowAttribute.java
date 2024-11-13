@@ -8,7 +8,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
 import org.springframework.web.server.ResponseStatusException;
@@ -46,7 +45,6 @@ public class WorkflowAttribute {
   private Long integer;
   private Double floating;
   private String enumeration;
-  private BigDecimal decimal;
   private Date date;
   private Instant timestamp;
   private Boolean flag;
@@ -68,7 +66,6 @@ public class WorkflowAttribute {
     this.setInteger(attributeDTO.integer);
     this.setFloating(attributeDTO.floating);
     this.setEnumeration(attributeDTO.enumeration);
-    this.setDecimal(attributeDTO.decimal);
     this.setDate(attributeDTO.date);
     this.setTimestamp(attributeDTO.timestamp);
     this.setFlag(attributeDTO.flag);
@@ -85,10 +82,6 @@ public class WorkflowAttribute {
 
   public String getEnumeration() {
     return this.enumeration;
-  }
-
-  public BigDecimal getDecimal() {
-    return this.decimal;
   }
 
   public Date getDate() {
@@ -138,17 +131,6 @@ public class WorkflowAttribute {
     ErrorUtils.assertEq(WorkflowAttributeType.ENUMERATION, this.id.getDescription().getAttrType());
 
     this.enumeration = enumeration;
-  }
-
-  public void setDecimal(BigDecimal decimal) throws ResponseStatusException {
-    if (decimal == null) {
-      this.decimal = null;
-      return;
-    }
-
-    ErrorUtils.assertEq(WorkflowAttributeType.DECIMAL, this.id.getDescription().getAttrType());
-
-    this.decimal = decimal;
   }
 
   public void setDate(Date date) throws ResponseStatusException {
@@ -202,13 +184,11 @@ public class WorkflowAttribute {
       case TEXT:
         return this.getText();
       case DATE:
-        return this.getDate();
+        return this.getDate().toInstant();
       case FLOATING:
         return this.getFloating();
       case FLAG:
         return this.getFlag();
-      case DECIMAL:
-        return this.getDecimal();
       case INTEGER:
         return this.getInteger();
       case TIMESTAMP:

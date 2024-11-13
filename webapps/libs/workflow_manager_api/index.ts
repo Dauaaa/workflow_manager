@@ -312,7 +312,6 @@ export interface components {
             /** Format: double */
             floating?: number;
             enumeration?: string;
-            decimal?: string;
             /** Format: date-time */
             date?: string;
             /** Format: date-time */
@@ -334,7 +333,6 @@ export interface components {
             /** Format: double */
             floating?: number;
             enumeration?: string;
-            decimal?: string;
             /** Format: date-time */
             date?: string;
             /** Format: date-time */
@@ -405,7 +403,7 @@ export interface components {
             /** @enum {string} */
             refType: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
             /** @enum {string} */
-            attrType: "INTEGER" | "FLOATING" | "ENUMERATION" | "DECIMAL" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
+            attrType: "INTEGER" | "FLOATING" | "ENUMERATION" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
             expression?: components["schemas"]["WorkflowAttributeExprRule"];
             regex?: components["schemas"]["WorkflowAttributeRegexRule"];
             /** Format: int32 */
@@ -428,7 +426,7 @@ export interface components {
             /** @enum {string} */
             refType: "WORKFLOW" | "WORKFLOW_STATE" | "WORKFLOW_ENTITY";
             /** @enum {string} */
-            attrType: "INTEGER" | "FLOATING" | "ENUMERATION" | "DECIMAL" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
+            attrType: "INTEGER" | "FLOATING" | "ENUMERATION" | "DATE" | "TIMESTAMP" | "FLAG" | "TEXT";
             name: string;
             /** Format: date-time */
             creationTime: string;

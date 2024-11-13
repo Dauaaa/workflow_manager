@@ -1,5 +1,4 @@
 import dayjs, { Dayjs } from "dayjs";
-import Decimal from "decimal.js";
 import { z } from "zod";
 
 // necessary because can't z.instanceof(Dayjs)
@@ -10,8 +9,6 @@ export const DayjsTimeSchema = z.string().or(z.number()).transform(date => dayjs
 export const DayjsDateSchema = z.string().transform(date => dayjs(date.slice(0, 10)));
 export const DayjsTimeSchemaRev = z.unknown().refine(date => dayjs.isDayjs(date)).transform(date => date.toISOString()) as unknown as DayjsRev;
 export const DayjsDateSchemaRev = z.unknown().refine(date => dayjs.isDayjs(date)).transform(date => date.format("YYYY-MM-DD")) as unknown as DayjsRev;
-export const DecimalSchema = z.coerce.string().transform(value => new Decimal(value));
-export const DecimalSchemaRev = z.instanceof(Decimal).transform(d => d.toString());
 export const IntegerSchema = z.coerce.string().transform(BigInt);
 export const IntegerSchemaRev = z.bigint().transform(String);
 
