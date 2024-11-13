@@ -113,6 +113,7 @@ const ErrorCard = () => {
           background: "hsl(var(--destructive))",
           color: "hsl(var(--destructive-foreground))",
         },
+        position: "top-right",
       });
     else
       toast("Every success leaves a track of errors...", {
@@ -120,6 +121,7 @@ const ErrorCard = () => {
           background: "hsl(var(--success))",
           color: "hsl(var(--success-foreground))",
         },
+        position: "top-right",
       });
 
     setToastType((t) => ++t);

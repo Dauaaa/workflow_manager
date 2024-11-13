@@ -9,7 +9,6 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Date;
 import org.springframework.web.server.ResponseStatusException;
@@ -44,7 +43,7 @@ public class WorkflowAttribute {
   }
 
   // values
-  private BigInteger integer;
+  private Long integer;
   private Double floating;
   private String enumeration;
   private BigDecimal decimal;
@@ -76,7 +75,7 @@ public class WorkflowAttribute {
     this.setText(attributeDTO.text);
   }
 
-  public BigInteger getInteger() {
+  public Long getInteger() {
     return this.integer;
   }
 
@@ -108,7 +107,7 @@ public class WorkflowAttribute {
     return this.text;
   }
 
-  public void setInteger(BigInteger integer) throws ResponseStatusException {
+  public void setInteger(Long integer) throws ResponseStatusException {
     if (integer == null) {
       this.integer = null;
       return;
@@ -194,6 +193,29 @@ public class WorkflowAttribute {
     ErrorUtils.assertEq(WorkflowAttributeType.TEXT, this.id.getDescription().getAttrType());
 
     this.text = text;
+  }
+
+  public Object getValue(WorkflowAttributeType ty) {
+    switch (ty) {
+      case ENUMERATION:
+        return this.getEnumeration();
+      case TEXT:
+        return this.getText();
+      case DATE:
+        return this.getDate();
+      case FLOATING:
+        return this.getFloating();
+      case FLAG:
+        return this.getFlag();
+      case DECIMAL:
+        return this.getDecimal();
+      case INTEGER:
+        return this.getInteger();
+      case TIMESTAMP:
+        return this.getTimestamp();
+    }
+
+    return null;
   }
 
   @PrePersist

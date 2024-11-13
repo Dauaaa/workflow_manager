@@ -131,7 +131,7 @@ export const MobileWorkflowManager = ({
 
   return (
     <MobileWorkflowContext.Provider value={mobileStore}>
-      <div className="h-full flex flex-col md:hidden">
+      <div className="h-[100vh] flex flex-col md:hidden">
         <WorkflowView />
         <StateView />
         <EntityView />
@@ -311,7 +311,12 @@ const NewEntityButton = () => {
   return typeof workflow?.initialStateId === "number" ? (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">New entity</Button>
+        <Button
+          disabled={typeof workflow.initialStateId !== "number"}
+          variant="outline"
+        >
+          New entity
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

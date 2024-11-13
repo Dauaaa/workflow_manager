@@ -184,7 +184,12 @@ const AttrField = observer((props: CommonAttributeFormFieldProps) => {
             <FormItem className="border-l border-foreground pl-4 flex flex-col gap-2">
               <FormLabel>{formLabel}</FormLabel>
               <FormControl>
-                <NonTextField {...props} field={field} attr={attr} />
+                <NonTextField
+                  {...props}
+                  field={field}
+                  attr={attr}
+                  fieldName={name}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -230,16 +235,25 @@ const NonTextField = ({
   description,
   baseEntityId,
   attr,
+  fieldName,
 }: CommonAttributeFormFieldProps & {
+  fieldName: "date" | "timestamp" | "flag" | "enumeration";
   field: ControllerRenderProps<
     SetAttributeFormType,
     "date" | "timestamp" | "flag" | "enumeration"
   >;
 }) => {
-  const value = form.watch("date");
+  const value = form.watch(fieldName);
   const workflowStore = useWorkflowStore();
 
+  const isFirstRef = React.useRef(true);
+
   React.useEffect(() => {
+    if (isFirstRef.current) {
+      isFirstRef.current = false;
+      return;
+    }
+
     if (isDifferent(description, attr?.date, value)) {
       void form.handleSubmit((attr) => {
         return workflowStore.setAttribute({
@@ -256,13 +270,13 @@ const NonTextField = ({
     <DatePicker
       classNames={{ inputBox: "w-[19rem]" }}
       date={field.value as Dayjs | undefined}
-      {...field}
+      onChange={field.onChange}
     />
   ) : description.attrType === "TIMESTAMP" ? (
     <DateTimePicker
       classNames={{ inputBox: "w-[19rem]" }}
-      {...field}
       value={field.value as Dayjs | undefined}
+      onChange={field.onChange}
     />
   ) : description.attrType === "FLAG" ? (
     <div className="flex justify-start gap-4 align-bottom w-[19rem]">

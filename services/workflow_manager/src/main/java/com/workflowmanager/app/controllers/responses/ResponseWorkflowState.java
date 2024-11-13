@@ -26,6 +26,7 @@ public class ResponseWorkflowState extends ResponseBaseEntity {
   public class ResponseChangeStateRules {
     @NotNull public Integer fromId;
     @NotNull public Integer toId;
+    @NotNull public List<String> expressionNames;
     @NotNull public List<String> expressions;
     @NotNull public Instant creationTime;
     @NotNull public Instant updateTime;
@@ -35,6 +36,7 @@ public class ResponseWorkflowState extends ResponseBaseEntity {
 
       this.fromId = rules.getFromId();
       this.toId = rules.getToId();
+      this.expressionNames = rules.getExpressionNames();
       this.expressions = rules.getExpressions();
       this.creationTime = rules.getCreationTime();
       this.updateTime = rules.getUpdateTime();

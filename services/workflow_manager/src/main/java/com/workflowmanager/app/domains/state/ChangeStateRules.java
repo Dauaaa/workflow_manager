@@ -2,6 +2,7 @@ package com.workflowmanager.app.domains.state;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.workflowmanager.app.core.ErrorUtils;
+import com.workflowmanager.app.domains.WorkflowAttributeDescription;
 import com.workflowmanager.app.domains.WorkflowState;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
@@ -9,8 +10,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -39,6 +38,11 @@ public class ChangeStateRules {
   @Schema(description = "The expressions that need to return true so the change may happen")
   @Size(min = 1)
   @NotNull
+  private List<String> expressionNames;
+
+  @Schema(description = "The expressions that need to return true so the change may happen")
+  @Size(min = 1)
+  @NotNull
   private List<String> expressions;
 
   @Column(name = "from_id2", nullable = false, updatable = false)
@@ -47,13 +51,18 @@ public class ChangeStateRules {
   @Column(name = "to_id2", nullable = false, updatable = false)
   private Integer toId;
 
+  @Column(nullable = false, updatable = false)
   private Instant creationTime;
 
   private Instant updateTime;
 
   public ChangeStateRules() {}
 
-  public ChangeStateRules(WorkflowState from, WorkflowState to, NewChangeStateRulesDTO dto)
+  public ChangeStateRules(
+      WorkflowState from,
+      List<WorkflowAttributeDescription> descriptions,
+      WorkflowState to,
+      NewChangeStateRulesDTO dto)
       throws ResponseStatusException {
     ErrorUtils.assertEq(
         from.getWorkflow().getId(),
@@ -65,9 +74,20 @@ public class ChangeStateRules {
 
     this.from = from;
     this.to = to;
+    this.expressionNames = dto.expressionNames;
     this.expressions = dto.expressions;
     this.fromId = from.getId();
     this.toId = to.getId();
+    this.updateTime = Instant.now();
+    this.creationTime = Instant.now();
+
+    ChangeStateRulesCEL.checkRules(descriptions, this);
+  }
+
+  public void update(NewChangeStateRulesDTO dto) {
+    this.expressionNames = dto.expressionNames;
+    this.expressions = dto.expressions;
+    this.updateTime = Instant.now();
   }
 
   public Instant getCreationTime() {
@@ -94,23 +114,11 @@ public class ChangeStateRules {
     return this.toId;
   }
 
+  public List<String> getExpressionNames() {
+    return this.expressionNames;
+  }
+
   public List<String> getExpressions() {
     return this.expressions;
-  }
-
-  @PrePersist
-  protected void generateIds() throws ResponseStatusException {
-    ErrorUtils.serverAssertNeq(this.from, null);
-    ErrorUtils.serverAssertNeq(this.to, null);
-
-    this.fromId = from.getId();
-    this.toId = to.getId();
-    this.updateTime = Instant.now();
-    this.creationTime = Instant.now();
-  }
-
-  @PreUpdate
-  protected void onUpdate() {
-    this.updateTime = Instant.now();
   }
 }

@@ -10,6 +10,11 @@ public class RequestSetChangeStateRule {
   @NotNull
   public Integer toId;
 
+  @Schema(description = "The names of the expressions aligned with the expressions list")
+  @Size(min = 1)
+  @NotNull
+  public List<String> expressionNames;
+
   @Schema(description = "The expressions that need to return true so the change may happen")
   @Size(min = 1)
   @NotNull

@@ -4,7 +4,6 @@ import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.WorkflowAttribute;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Date;
 
@@ -35,7 +34,7 @@ public class ResponseAttribute {
     this.baseEntityId = attribute.getBaseEntityId();
     this.creationTime = attribute.getCreationTime();
     this.updateTime = attribute.getUpdateTime();
-    BigInteger i = attribute.getInteger();
+    Long i = attribute.getInteger();
     if (i != null) this.integer = i.toString();
     this.floating = attribute.getFloating();
     this.enumeration = attribute.getEnumeration();

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.workflowmanager.app.core.BaseEntity;
 import com.workflowmanager.app.core.ErrorUtils;
 import com.workflowmanager.app.domains.state.ChangeStateRules;
+import com.workflowmanager.app.domains.state.ChangeStateRulesCEL;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -84,7 +85,15 @@ public class WorkflowState extends BaseEntity {
     this.lastCurrentEntitiesChange = Instant.now();
   }
 
-  public static void moveEntity(WorkflowState from, WorkflowState to, WorkflowEntity entity)
+  public static void moveEntity(
+      WorkflowState from,
+      WorkflowState to,
+      WorkflowEntity entity,
+      List<WorkflowAttributeDescription> descriptions,
+      List<WorkflowAttribute> workflowAttrs,
+      List<WorkflowAttribute> entityAttrs,
+      List<WorkflowAttribute> fromStateAttrs,
+      List<WorkflowAttribute> toStateAttrs)
       throws ResponseStatusException {
     ChangeStateRules rule =
         from.changeRules.stream()
@@ -97,7 +106,9 @@ public class WorkflowState extends BaseEntity {
                         String.format(
                             "rule from %s to %s does not exist", from.getId(), to.getId())));
 
-    // TODO: APPLY RULE
+    ChangeStateRulesCEL.applyRule(
+        descriptions, rule, workflowAttrs, entityAttrs, fromStateAttrs, toStateAttrs);
+
     System.out.println(String.format("apply rule from %s to %s", rule.getFromId(), rule.getToId()));
 
     from.signalLastCurrentEntitiesChange();

@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import * as React from "react";
 import { AuthenticationDisplay } from "./features/authentication-display";
 import { WorkflowStoreProvider } from "./store/context";
-import { AuthenticationContext } from "./features/authentication-context";
+import { AuthenticationManager } from "./features/authentication-manager";
 import { ThemeProvider } from "./components/theme-provider";
 import { Toaster } from "./components/ui/sonner";
 
@@ -23,7 +23,7 @@ export const workflowManagerRouter: ReturnType<typeof createBrowserRouter> =
           element: (
             <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
               <WorkflowStoreProvider>
-                <AuthenticationContext />
+                <AuthenticationManager />
                 <Outlet />
                 <AuthenticationDisplay />
                 <Toaster />

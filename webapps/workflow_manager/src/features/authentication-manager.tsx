@@ -32,7 +32,7 @@ const AuthenticationSchema = z.object({
 });
 type AuthenticationType = z.infer<typeof AuthenticationSchema>;
 
-export const AuthenticationContext = observer(() => {
+export const AuthenticationManager = observer(() => {
   const workflowStore = useWorkflowStore();
   const [searchParams, setSearchParams] = useSearchParams();
 

@@ -352,7 +352,7 @@ export class WorkflowStore {
 
     if (description.success) {
       this.updateRequestStatus("createAttributeDescription", arg, "OK");
-      this.upsertAttributeDescriptions(arg[0].workflowId, [description.data]);
+      this.upsertAttributeDescriptions(arg.workflowId, [description.data]);
     } else {
       this.updateRequestStatus("createAttributeDescription", arg, "ERROR");
     }
@@ -1259,8 +1259,9 @@ class WorkflowManagerService {
         >
       >;
 
+      const x = resParser.parse(response?.data);
       return resParser.safeParse(response?.data);
-    } catch {
+    } catch (e) {
       return { success: false } as {
         success: false;
         description?: undefined;
@@ -1644,12 +1645,14 @@ export module parsers {
 
   export const RequestSetChangeStateRuleSchema = z.object({
     toId: z.number(),
+    expressionNames: z.string().array().min(1),
     expressions: z.string().array().min(1),
   });
 
   export const ChangeStateRulesSchema = z.object({
     fromId: z.number(),
     toId: z.number(),
+    expressionNames: z.string().array(),
     expressions: z.string().array(),
     creationTime: DayjsTimeSchema,
     updateTime: DayjsTimeSchema,

@@ -43,9 +43,9 @@ export const SetConfigForm = observer(
     // TODO: decide how this should be loaded (cache vs page aware of necessary loads)
     const workflow = workflowStore.workflows.get(workflowId);
     const workflowStates =
-      workflowStore.workflowStatesByWorkflow.get(workflowId);
+      workflowStore.workflowStatesByWorkflow.get(workflowId) ?? [];
 
-    return workflow && workflowStates ? (
+    return workflow ? (
       <SetConfigFormInner
         workflow={workflow}
         states={[...workflowStates.values()]}
@@ -92,7 +92,6 @@ const SetConfigFormInner = observer(
                 <FormLabel>Initial state for the workflow</FormLabel>
                 <FormControl>
                   <Select
-                    {...field}
                     onValueChange={field.onChange}
                     value={
                       !field.value && field.value !== 0

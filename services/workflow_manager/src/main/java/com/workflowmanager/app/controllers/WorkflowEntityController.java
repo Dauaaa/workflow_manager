@@ -215,6 +215,10 @@ public class WorkflowEntityController {
     WorkflowEntity entity =
         ErrorUtils.onEmpty404(
             this.workflowEntityRepository.getByIdAndClientId(entityId, auth.clientId), entityId);
+    Workflow workflow =
+        ErrorUtils.onEmpty404(
+            this.workflowRepository.getByIdAndClientId(entity.getWorkflowId(), auth.clientId),
+            entityId);
     WorkflowState curState =
         ErrorUtils.onEmpty404(
             this.workflowStateRepository.getByIdAndClientId(
@@ -224,7 +228,30 @@ public class WorkflowEntityController {
         ErrorUtils.onEmpty404(
             this.workflowStateRepository.getByIdAndClientId(newStateId, auth.clientId), newStateId);
 
-    WorkflowState.moveEntity(curState, nextState, entity);
+    List<WorkflowAttributeDescription> descriptions =
+        this.attributeDescriptionRepository.listByWorkflowId(workflow.getId());
+    List<WorkflowAttribute> workflowAttrs =
+        this.workflowAttributeRepository.list(
+            workflow.getId(), WorkflowAttributeReferenceType.WORKFLOW);
+    List<WorkflowAttribute> entityAttrs =
+        this.workflowAttributeRepository.list(
+            entity.getId(), WorkflowAttributeReferenceType.WORKFLOW_ENTITY);
+    List<WorkflowAttribute> fromStateAttrs =
+        this.workflowAttributeRepository.list(
+            curState.getId(), WorkflowAttributeReferenceType.WORKFLOW_STATE);
+    List<WorkflowAttribute> toStateAttrs =
+        this.workflowAttributeRepository.list(
+            nextState.getId(), WorkflowAttributeReferenceType.WORKFLOW_STATE);
+
+    WorkflowState.moveEntity(
+        curState,
+        nextState,
+        entity,
+        descriptions,
+        workflowAttrs,
+        entityAttrs,
+        fromStateAttrs,
+        toStateAttrs);
 
     this.workflowStateRepository.save(curState);
     this.workflowStateRepository.save(nextState);

@@ -142,14 +142,22 @@ public class WorkflowStateController {
                 request.toId, auth.clientId),
             request.toId);
 
-    // just guarantee it exists
-    ErrorUtils.onEmpty404(
-        this.workflowRepository.getByIdAndClientId(from.getWorkflow().getId(), auth.clientId),
-        from.getWorkflow().getId());
+    Workflow workflow =
+        ErrorUtils.onEmpty404(
+            this.workflowRepository.getByIdAndClientId(from.getWorkflow().getId(), auth.clientId),
+            from.getWorkflow().getId());
+
+    List<WorkflowAttributeDescription> descriptions =
+        this.attributeDescriptionRepository.listByWorkflowId(workflow.getId());
 
     NewChangeStateRulesDTO dto = new NewChangeStateRulesDTO(request, from.getId());
 
-    ChangeStateRules rules = new ChangeStateRules(from, to, dto);
+    Optional<ChangeStateRules> rulesOpt =
+        this.changeStateRulesRepository.get(from.getId(), to.getId());
+    rulesOpt.ifPresent(rules -> rules.update(dto));
+
+    ChangeStateRules rules =
+        rulesOpt.orElseGet(() -> new ChangeStateRules(from, descriptions, to, dto));
 
     this.changeStateRulesRepository.save(rules);
 

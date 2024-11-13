@@ -353,6 +353,7 @@ export interface components {
             fromId: number;
             /** Format: int32 */
             toId: number;
+            expressionNames: string[];
             expressions: string[];
             /** Format: date-time */
             creationTime: string;
@@ -445,6 +446,8 @@ export interface components {
              * @description Id of the workflow state that the entity will go to.
              */
             toId: number;
+            /** @description The names of the expressions aligned with the expressions list */
+            expressionNames: string[];
             /** @description The expressions that need to return true so the change may happen */
             expressions: string[];
         };

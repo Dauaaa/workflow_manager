@@ -2,12 +2,11 @@ package com.workflowmanager.app.domains;
 
 import com.workflowmanager.app.controllers.requests.RequestNewAttribute;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Date;
 
 public class NewWorkflowAttributeDTO {
-  public BigInteger integer;
+  public Long integer;
   public Double floating;
   public String enumeration;
   public BigDecimal decimal;
@@ -17,7 +16,7 @@ public class NewWorkflowAttributeDTO {
   public String text;
 
   public NewWorkflowAttributeDTO(RequestNewAttribute request) {
-    if (request.integer != null) this.integer = new BigInteger(request.integer);
+    this.integer = Long.parseLong(request.integer);
     this.floating = request.floating;
     this.enumeration = request.enumeration;
     if (request.decimal != null) {
