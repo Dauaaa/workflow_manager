@@ -29,6 +29,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Link } from "react-router-dom";
+import { ThemePickerButton } from "@/components/theme-provider";
 
 const sessionLink = (clientId: string) =>
   `https://workflow-manager-client.fly.dev/workflows?clientId=${clientId}`;
@@ -87,100 +88,110 @@ const DesktopMenu = observer(() => {
     }));
 
   return (
-    <div
-      className="
+    <>
+      <div
+        className="
     hidden
     md:flex
-    justify-start w-[100vw] fixed bottom-0 pb-4 px-12 text-secondary-foreground text-sm
+    fixed bottom-4 left-12 text-secondary-foreground text-sm
     "
-    >
-      <Dialog>
-        <div className="relative">
-          <DialogTrigger asChild>
+      >
+        <Dialog>
+          <div className="relative">
+            <DialogTrigger asChild>
+              <Button
+                onMouseDown={handleChildOnMouseDown}
+                onClick={handleChildOnClick}
+                className={cn("transition-all duration-200 absolute", {
+                  "translate-x-[5.5rem]": isOpen.open,
+                  "scale-0": !isOpen.open,
+                })}
+              >
+                Share session
+              </Button>
+            </DialogTrigger>
             <Button
-              onMouseDown={handleChildOnMouseDown}
-              onClick={handleChildOnClick}
-              className={cn("transition-all duration-200 absolute", {
-                "translate-x-[5.5rem]": isOpen.open,
+              className={cn("transition-all duration-200 w-16 absolute", {
+                "translate-y-[-3.5rem]": isOpen.open,
                 "scale-0": !isOpen.open,
               })}
+              onMouseDown={handleChildOnMouseDown}
+              onClick={() => {
+                handleChildOnClick();
+                workflowStore.setAuthentication();
+              }}
             >
-              Share session
+              Logout
             </Button>
-          </DialogTrigger>
-          <Button
-            className={cn("transition-all duration-200 w-16 absolute", {
-              "translate-y-[-3.5rem]": isOpen.open,
-              "scale-0": !isOpen.open,
-            })}
-            onMouseDown={handleChildOnMouseDown}
-            onClick={() => {
-              handleChildOnClick();
-              workflowStore.setAuthentication();
-            }}
-          >
-            Logout
-          </Button>
-          <Button
-            onClick={handleUserButtonClick}
-            onBlur={handleUserButtonBlur}
-            className="w-16"
-          >
-            <UserIcon />
-          </Button>
-        </div>
-        <DialogContent className="max-w-[34rem]">
-          <DialogTitle>Share your session with friends!</DialogTitle>
-          <DialogDescription>
-            All sessions are isolated, share this ID if you want someone to see
-            your workflows.
-          </DialogDescription>
-          <div className="flex flex-col gap-2">
-            {auth?.clientId ? (
-              <>
-                <div className="flex">
-                  <Label htmlFor="sessionIdDesktop" className="my-auto w-20">
-                    Session ID:
-                  </Label>
-                  <span
-                    id="sessionIdDesktop"
-                    className="font-mono font-bold w-96 my-auto"
-                  >
-                    {auth?.clientId}
-                  </span>
-                </div>
-                <div className="flex grow gap-2">
-                  <CopyButton
-                    copyButtonVariant="outline"
-                    className="w-full"
-                    content={auth.clientId}
-                  >
-                    Copy session ID
-                  </CopyButton>
-                  <CopyButton
-                    copyButtonVariant="outline"
-                    className="w-full"
-                    content={sessionLink(auth.clientId)}
-                  >
-                    Copy session link
-                  </CopyButton>
-                </div>
-                <Alert className="mt-12">
-                  <InfoIcon className="h-4 w-4" />
-                  <AlertTitle className="font-bold">QR code login</AlertTitle>
-                  <AlertDescription>
-                    You can login to this session by just scanning the QR code
-                  </AlertDescription>
-                </Alert>
-                <div id="sessionIdQrCodeDesktop" className="w-fit mx-auto">
-                  <QRCodeSVG value={sessionLink(auth.clientId)} size={300} />
-                </div>
-              </>
-            ) : null}
+            <Button
+              onClick={handleUserButtonClick}
+              onBlur={handleUserButtonBlur}
+              className="w-16"
+              icon={<UserIcon />}
+            />
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+          <DialogContent className="max-w-[34rem]">
+            <DialogTitle>Share your session with friends!</DialogTitle>
+            <DialogDescription>
+              All sessions are isolated, share this ID if you want someone to
+              see your workflows.
+            </DialogDescription>
+            <div className="flex flex-col gap-2">
+              {auth?.clientId ? (
+                <>
+                  <div className="flex">
+                    <Label htmlFor="sessionIdDesktop" className="my-auto w-20">
+                      Session ID:
+                    </Label>
+                    <span
+                      id="sessionIdDesktop"
+                      className="font-mono font-bold w-96 my-auto"
+                    >
+                      {auth?.clientId}
+                    </span>
+                  </div>
+                  <div className="flex grow gap-2">
+                    <CopyButton
+                      copyButtonVariant="outline"
+                      className="w-full"
+                      content={auth.clientId}
+                    >
+                      Copy session ID
+                    </CopyButton>
+                    <CopyButton
+                      copyButtonVariant="outline"
+                      className="w-full"
+                      content={sessionLink(auth.clientId)}
+                    >
+                      Copy session link
+                    </CopyButton>
+                  </div>
+                  <Alert className="mt-12">
+                    <InfoIcon className="h-4 w-4" />
+                    <AlertTitle className="font-bold">QR code login</AlertTitle>
+                    <AlertDescription>
+                      You can login to this session by just scanning the QR code
+                    </AlertDescription>
+                  </Alert>
+                  <div id="sessionIdQrCodeDesktop" className="w-fit mx-auto">
+                    <QRCodeSVG value={sessionLink(auth.clientId)} size={300} />
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div
+        className="
+    hidden
+    md:flex
+    fixed bottom-4 right-12 text-secondary-foreground text-sm
+    "
+      >
+        <ThemePickerButton />
+      </div>
+    </>
   );
 });
 
@@ -207,13 +218,16 @@ const MobileAuthMenu = () => {
         </SheetTrigger>
         <SheetContent side="right">
           <div className="flex flex-col justify-between h-full px-4">
-            <SheetClose asChild>
-              <Link to="/workflows" className="font-mono font-bold">
-                <Button className="w-full">
-                  <HouseIcon /> Go home
-                </Button>
-              </Link>
-            </SheetClose>
+            <div className="flex flex-col gap-4">
+              <SheetClose asChild>
+                <Link to="/workflows" className="font-mono font-bold">
+                  <Button className="w-full">
+                    <HouseIcon /> Go home
+                  </Button>
+                </Link>
+              </SheetClose>
+              <ThemePickerButton className="w-full" />
+            </div>
             <div className="flex flex-col gap-3">
               {auth?.clientId ? (
                 <>

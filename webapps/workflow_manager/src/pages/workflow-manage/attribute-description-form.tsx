@@ -23,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkflowStore } from "@/store/context";
 import {
   parsers,
+  WorkflowAttributeReferenceType,
   WorkflowAttributeReferenceTypePretty,
   WorkflowAttributeTypePretty,
   WORKFLOW_ATTRIBUTE_REFERENCE_TYPES,
@@ -47,10 +48,58 @@ export const AttributeDescriptionManager = observer(
         <TabsContent className="font-mono" value="NEW_DESCRIPTION">
           <NewAttributeDescriptionForm workflowId={workflowId} />
         </TabsContent>
+        <TabsContent value="WORKFLOW">
+          <DisplayAttributeDescriptions
+            workflowId={workflowId}
+            refType="WORKFLOW"
+          />
+        </TabsContent>
+        <TabsContent value="WORKFLOW_STATE">
+          <DisplayAttributeDescriptions
+            workflowId={workflowId}
+            refType="WORKFLOW_STATE"
+          />
+        </TabsContent>
+        <TabsContent value="WORKFLOW_ENTITY">
+          <DisplayAttributeDescriptions
+            workflowId={workflowId}
+            refType="WORKFLOW_ENTITY"
+          />
+        </TabsContent>
       </Tabs>
     );
   },
 );
+
+const DisplayAttributeDescriptions = ({
+  workflowId,
+  refType,
+}: {
+  workflowId: number;
+  refType: WorkflowAttributeReferenceType;
+}) => {
+  const workflowStore = useWorkflowStore();
+
+  const descriptions = [
+    ...(workflowStore.attributeDescriptionsByWorkflows
+      .get(workflowId)
+      ?.[refType].values() ?? []),
+  ];
+
+  return (
+    <div className="flex flex-wrap gap-4">
+      {descriptions.map((description) => (
+        <span
+          key={description.name}
+          className="font-mono p-4 border-l-2 border-l-accent text-xl font-semibold"
+        >
+          {description.name} -{" "}
+          {WorkflowAttributeTypePretty[description.attrType]}
+        </span>
+      ))}
+    </div>
+  );
+};
 
 const NewAttributeDescriptionFormSchema =
   parsers.RequestNewAttributeDescriptionSchema;
@@ -58,45 +107,51 @@ type NewAttributeDescriptionFormType = z.infer<
   typeof NewAttributeDescriptionFormSchema
 >;
 
-export const NewAttributeDescriptionForm = ({
-  workflowId,
-}: {
-  workflowId: number;
-}) => {
-  const form = useForm<NewAttributeDescriptionFormType>({
-    resolver: zodResolver(NewAttributeDescriptionFormSchema),
-    defaultValues: {
-      name: "",
-    },
-  });
+export const NewAttributeDescriptionForm = observer(
+  ({ workflowId }: { workflowId: number }) => {
+    const form = useForm<NewAttributeDescriptionFormType>({
+      resolver: zodResolver(NewAttributeDescriptionFormSchema),
+      defaultValues: {
+        name: "",
+      },
+    });
 
-  const workflowStore = useWorkflowStore();
+    const workflowStore = useWorkflowStore();
 
-  return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit((description) => {
-          workflowStore.createAttributeDescription({
-            workflowId,
-            ...description,
-          });
-        })}
-        className="space-y-8"
-      >
-        <NameField form={form} />
-        <RefTypeField form={form} />
-        <AttrType form={form} />
-        <SimpleRule form={form} />
-        <FormSubmitter
-          schema={NewAttributeDescriptionFormSchema}
-          form={form as any}
+    const isSubmitting = [
+      ...workflowStore.requestStatus.createAttributeDescription.values(),
+    ].some((status) => status === "LOADING");
+
+    return (
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(async (description) => {
+            if (
+              await workflowStore.createAttributeDescription({
+                workflowId,
+                ...description,
+              })
+            )
+              form.reset();
+          })}
+          className="space-y-8"
         >
-          Submit
-        </FormSubmitter>
-      </form>
-    </Form>
-  );
-};
+          <NameField form={form} />
+          <RefTypeField form={form} />
+          <AttrType form={form} />
+          <SimpleRule form={form} />
+          <FormSubmitter
+            schema={NewAttributeDescriptionFormSchema}
+            form={form as any}
+            loading={isSubmitting}
+          >
+            Submit
+          </FormSubmitter>
+        </form>
+      </Form>
+    );
+  },
+);
 
 interface CommonAttributeDescriptionFieldProps {
   form: UseFormReturn<NewAttributeDescriptionFormType>;
@@ -169,7 +224,6 @@ const EnumerationField = ({ form }: CommonAttributeDescriptionFieldProps) => {
             <Input
               placeholder="my-enum"
               {...form.register(`enumDescription.${index}`)}
-              ref={undefined}
             />
             <Button
               disabled={fieldArray.fields.length === 1}
@@ -178,9 +232,8 @@ const EnumerationField = ({ form }: CommonAttributeDescriptionFieldProps) => {
                 fieldArray.remove(index);
               }}
               variant="destructive"
-            >
-              <TrashIcon />
-            </Button>
+              icon={<TrashIcon />}
+            />
           </div>
         ))}
         <FormMessage />

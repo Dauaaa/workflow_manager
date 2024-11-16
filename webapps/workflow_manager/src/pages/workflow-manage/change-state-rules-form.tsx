@@ -191,6 +191,10 @@ const EditChangeRuleForm = observer(
       return null;
     }
 
+    const isSubmitting = [
+      ...workflowStore.requestStatus.setChangeRule.values(),
+    ].some((status) => status === "LOADING");
+
     return (
       <Card className="p-4">
         <CardTitle>Editing rules for state: {curState.name}</CardTitle>
@@ -212,7 +216,9 @@ const EditChangeRuleForm = observer(
             >
               <ExpressionsField form={form} workflowId={workflowId} />
               <div className="flex justify-between py-4">
-                <Button type="submit">Submit</Button>
+                <Button type="submit" loading={isSubmitting}>
+                  Submit
+                </Button>
                 <Button
                   variant="destructive"
                   onClick={() => setCurToState(undefined)}
@@ -242,6 +248,10 @@ const NewChangeRuleForm = observer(
 
     const toStateId = form.watch("toId");
 
+    const isSubmitting = [
+      ...workflowStore.requestStatus.setChangeRule.values(),
+    ].some((status) => status === "LOADING");
+
     return (
       <Card className="p-4">
         <CardTitle>Creating new rules</CardTitle>
@@ -254,18 +264,20 @@ const NewChangeRuleForm = observer(
             <form
               className="font-mono"
               onSubmit={form.handleSubmit(async (rule) => {
-                await workflowStore.setChangeRule({
-                  workflowStateId: curState.id,
-                  rule,
-                });
-                form.reset();
+                if (
+                  await workflowStore.setChangeRule({
+                    workflowStateId: curState.id,
+                    rule,
+                  })
+                )
+                  form.reset();
               })}
             >
               <StatePickField form={form} states={states} curState={curState} />
               {toStateId ? (
                 <ExpressionsField form={form} workflowId={workflowId} />
               ) : null}
-              <Button className="mt-4" type="submit">
+              <Button className="mt-4" type="submit" loading={isSubmitting}>
                 Submit
               </Button>
             </form>
@@ -526,7 +538,7 @@ const ExpressionsField = ({
         <div className="flex flex-wrap font-mono gap-4">
           {attrs.map((attr) => (
             <span
-              id={attr.name}
+              key={attr.name}
               className="h-12 border-l-2 border-l-accent flex flex-col justify-center pl-2 min-w-40"
             >
               {attr.name} - {WorkflowAttributeTypePretty[attr.type]}

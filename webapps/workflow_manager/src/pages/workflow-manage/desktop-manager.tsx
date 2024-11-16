@@ -525,8 +525,8 @@ const NewEntityContext = observer(
         <DialogHeader>
           <DialogTitle>Create a new entity</DialogTitle>
           <DialogDescription>
-            Fill in the information to create a new entity. It'll start in the
-            state set in workflow configuration.
+            Fill in the information to create a new entity. It&apos;ll start in
+            the state set in workflow configuration.
           </DialogDescription>
         </DialogHeader>
         <NewEntityForm {...newEntityCtx} />

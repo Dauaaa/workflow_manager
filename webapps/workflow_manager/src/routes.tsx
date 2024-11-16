@@ -21,7 +21,7 @@ export const workflowManagerRouter: ReturnType<typeof createBrowserRouter> =
         {
           path: "workflows",
           element: (
-            <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+            <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
               <WorkflowStoreProvider>
                 <AuthenticationManager />
                 <Outlet />

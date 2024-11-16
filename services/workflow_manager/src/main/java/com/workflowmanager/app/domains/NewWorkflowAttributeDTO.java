@@ -14,7 +14,8 @@ public class NewWorkflowAttributeDTO {
   public String text;
 
   public NewWorkflowAttributeDTO(RequestNewAttribute request) {
-    this.integer = Long.parseLong(request.integer);
+    if (request.integer != null) this.integer = Long.parseLong(request.integer);
+
     this.floating = request.floating;
     this.enumeration = request.enumeration;
     this.date = request.date;

@@ -1,11 +1,15 @@
 {
   "name": "react_example",
   "private": true,
-  "scripts": {},
+  "scripts": {
+      "fmt": "npx prettier src/** -w",
+      "lint": "npx eslint src/** --fix"
+  },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-collapsible": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-dropdown-menu": "^2.1.2",
     "@radix-ui/react-icons": "^1.3.1",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-popover": "^1.1.2",
@@ -40,6 +44,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@eslint/js": "^9.15.0",
     "@testing-library/jest-dom": "4.2.4",
     "@testing-library/react": "13.4.0",
     "@types/jest": "29.2.3",
@@ -49,8 +54,10 @@
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
     "common_schemas": "workspace:*",
-    "eslint": "^8.57.0",
+    "eslint": "^8.57.1",
     "eslint-config-next": "13.0.5",
+    "eslint-plugin-react": "^7.37.2",
+    "globals": "^15.12.0",
     "jest-cli": "29.5.0",
     "jest-environment-jsdom": "29.5.0",
     "jest-junit": "16.0.0",
@@ -58,6 +65,7 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "typescript": "4.9.3",
+    "typescript-eslint": "^8.14.0",
     "vite": "^5.4.9",
     "workflow_manager_api": "workspace:*"
   }

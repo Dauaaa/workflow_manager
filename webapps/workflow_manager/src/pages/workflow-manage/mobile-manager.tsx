@@ -210,9 +210,8 @@ const WorkflowViewTitle = observer(() => {
               e.stopPropagation();
               mobileStore.setCurrentView("WORKFLOW_ATTRS");
             }}
-          >
-            <GearIcon />
-          </Button>
+            icon={<GearIcon />}
+          />
         </>
       ) : (
         <Skeleton />
@@ -257,18 +256,20 @@ const WorkflowViewContent = observer(() => {
                 Configure attributes
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="WORKFLOW_ATTRS">
-              <WorkflowAttrsView />
-            </TabsContent>
-            <TabsContent value="WORKFLOW_CONFIG">
-              <WorkflowConfigView />
-            </TabsContent>
-            <TabsContent value="ADD_STATES">
-              <AddStatesView />
-            </TabsContent>
-            <TabsContent value="ATTR_DESCRIPTIONS">
-              <AttrsDescriptionView />
-            </TabsContent>
+            <div className="p-4">
+              <TabsContent value="WORKFLOW_ATTRS">
+                <WorkflowAttrsView />
+              </TabsContent>
+              <TabsContent value="WORKFLOW_CONFIG">
+                <WorkflowConfigView />
+              </TabsContent>
+              <TabsContent value="ADD_STATES">
+                <AddStatesView />
+              </TabsContent>
+              <TabsContent value="ATTR_DESCRIPTIONS">
+                <AttrsDescriptionView />
+              </TabsContent>
+            </div>
           </Tabs>
         )
       ) : null}
@@ -424,9 +425,8 @@ const StateViewTitle = observer(() => {
           e.stopPropagation();
           mobileStore.setCurrentView("STATE_ATTRS");
         }}
-      >
-        <GearIcon />
-      </Button>
+        icon={<GearIcon />}
+      />
     </div>
   ) : null;
 });
@@ -461,12 +461,14 @@ const StateViewContent = observer(() => {
               <TabsTrigger value="STATE_ATTRS">State attributes</TabsTrigger>
               <TabsTrigger value="STATE_RULES">State change rules</TabsTrigger>
             </TabsList>
-            <TabsContent value="STATE_ATTRS">
-              <StateAttrsView />
-            </TabsContent>
-            <TabsContent value="STATE_RULES">
-              <StateRulesView />
-            </TabsContent>
+            <div className="p-4">
+              <TabsContent value="STATE_ATTRS">
+                <StateAttrsView />
+              </TabsContent>
+              <TabsContent value="STATE_RULES">
+                <StateRulesView />
+              </TabsContent>
+            </div>
           </Tabs>
         )
       ) : null}
@@ -623,12 +625,14 @@ const EntityViewContent = observer(() => {
             <TabsTrigger value="ENTITY_ATTRS">Entity attributes</TabsTrigger>
             <TabsTrigger value="ENTITY_MOVE">Move to state</TabsTrigger>
           </TabsList>
-          <TabsContent value="ENTITY_ATTRS">
-            <EntityAttrsView />
-          </TabsContent>
-          <TabsContent value="ENTITY_MOVE">
-            <EntityMoveView />
-          </TabsContent>
+          <div className="p-4">
+            <TabsContent value="ENTITY_ATTRS">
+              <EntityAttrsView />
+            </TabsContent>
+            <TabsContent value="ENTITY_MOVE">
+              <EntityMoveView />
+            </TabsContent>
+          </div>
         </Tabs>
       ) : null}
     </div>

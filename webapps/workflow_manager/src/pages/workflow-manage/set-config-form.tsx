@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import * as React from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -31,13 +33,7 @@ const FormSchema = z.object({
 type FormType = z.infer<typeof FormSchema>;
 
 export const SetConfigForm = observer(
-  ({
-    buttonOverride,
-    workflowId,
-  }: {
-    buttonOverride?: React.ReactNode;
-    workflowId: number;
-  }) => {
+  ({ workflowId }: { workflowId: number }) => {
     const workflowStore = useWorkflowStore();
 
     // TODO: decide how this should be loaded (cache vs page aware of necessary loads)
@@ -55,15 +51,7 @@ export const SetConfigForm = observer(
 );
 
 const SetConfigFormInner = observer(
-  ({
-    buttonOverride,
-    states,
-    workflow,
-  }: {
-    buttonOverride?: React.ReactNode;
-    states: WorkflowState[];
-    workflow: Workflow;
-  }) => {
+  ({ states, workflow }: { states: WorkflowState[]; workflow: Workflow }) => {
     const form = useForm<FormType>({
       resolver: zodResolver(FormSchema),
       defaultValues: {
@@ -72,6 +60,10 @@ const SetConfigFormInner = observer(
     });
 
     const workflowStore = useWorkflowStore();
+
+    const isSubmitting = [
+      ...workflowStore.requestStatus.setWorkflowConfig.values(),
+    ].some((status) => status === "LOADING");
 
     return (
       <Form {...form}>
@@ -122,7 +114,9 @@ const SetConfigFormInner = observer(
               </FormItem>
             )}
           />
-          {buttonOverride ?? <Button type="submit">Submit</Button>}
+          <Button type="submit" loading={isSubmitting}>
+            Submit
+          </Button>
         </form>
       </Form>
     );

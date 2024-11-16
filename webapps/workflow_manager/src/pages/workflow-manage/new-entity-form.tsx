@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import * as React from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -43,12 +45,16 @@ export const NewEntityForm = ({
 
   const workflowStore = useWorkflowStore();
 
+  const isSubmitting = [
+    ...workflowStore.requestStatus.createEntity.values(),
+  ].some((status) => status === "LOADING");
+
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(async (newEntity) => {
-          workflowStore.createEntity({ newEntity, workflowId });
-          form.reset();
+          if (await workflowStore.createEntity({ newEntity, workflowId }))
+            form.reset();
         })}
         className="space-y-8"
         onClick={(e) => e.stopPropagation()}
@@ -70,6 +76,7 @@ export const NewEntityForm = ({
           schema={FormSchema}
           form={form as any}
           closeContext={inDialog ? "dialog" : undefined}
+          loading={isSubmitting}
         >
           Submit
         </FormSubmitter>

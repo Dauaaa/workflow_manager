@@ -36,6 +36,7 @@ import { z } from "zod";
 import { DatePicker } from "@/components/ui/date-picker";
 import { DateTimePicker } from "@/components/ui/time-picker/date-time-picker";
 import { Dayjs } from "dayjs";
+import { useAsync } from "@/hooks/use-async";
 
 export const AttributesForm = observer(
   ({
@@ -250,16 +251,22 @@ const NonTextField = ({
       return;
     }
 
-    if (isDifferent(description, attr?.date, value)) {
-      void form.handleSubmit((attr) => {
+    void form.handleSubmit((attrInner) => {
+      console.log(
+        isFirstRef.current,
+        description,
+        attr?.[fieldName],
+        attrInner[fieldName],
+      );
+      if (isDifferent(description, attr?.[fieldName], attrInner[fieldName])) {
         return workflowStore.setAttribute({
           refType: description.refType,
           baseEntityId,
           attributeName: description.name,
-          attr: attr as any,
+          attr: attrInner as any,
         });
-      })();
-    }
+      }
+    })();
   }, [value]);
 
   return description.attrType === "DATE" ? (
@@ -380,16 +387,18 @@ const TextField = observer(
         field.value ||
       !!textInputToFieldValue(description.attrType, strValue)?.error;
 
-    const submit = () => {
-      void form.handleSubmit((attr) => {
-        void workflowStore.setAttribute({
+    const submitCb = React.useCallback(async () => {
+      await form.handleSubmit(async (attr) => {
+        await workflowStore.setAttribute({
           attr: attr as any,
           refType: description.refType,
           baseEntityId,
           attributeName: description.name,
         });
       })();
-    };
+    }, [form]);
+
+    const [isSubmitting, submit] = useAsync(submitCb);
 
     return (
       <div className="flex gap-4">
@@ -413,9 +422,9 @@ const TextField = observer(
             submit();
           }}
           disabled={disabled}
-        >
-          <UpdateIcon className="w-8 h-8" />
-        </Button>
+          loading={isSubmitting}
+          icon={<UpdateIcon className="w-8 h-8" />}
+        />
       </div>
     );
   },

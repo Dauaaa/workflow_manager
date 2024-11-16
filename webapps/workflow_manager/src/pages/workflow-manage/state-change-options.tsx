@@ -1,8 +1,9 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import * as React from "react";
 import { useWorkflowStore } from "@/store/context";
 import { ChangeStateRule, WorkflowState } from "@/store/workflow-store";
 import { CubeIcon } from "@radix-ui/react-icons";
 import { observer } from "mobx-react-lite";
-import "react";
 
 export const StateChangeOptions = observer(
   ({ workflowId, entityId }: { workflowId: number; entityId: number }) => {
@@ -51,7 +52,6 @@ const ChangeStateItem = ({
 }) => {
   const workflowStore = useWorkflowStore();
 
-  // TODO: validate rule here and give visual feedback if can change state
   return (
     <div
       className="border rounded-3xl px-8 py-4 text-xl font-bold w-72 line-clamp-1 hover:bg-accent hover:cursor-pointer"

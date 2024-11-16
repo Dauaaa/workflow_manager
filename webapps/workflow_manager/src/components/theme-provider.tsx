@@ -1,4 +1,16 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import * as React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
+import { Button, ButtonProps } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 type Theme = "dark" | "light" | "system";
 
@@ -61,6 +73,30 @@ export function ThemeProvider({
     </ThemeProviderContext.Provider>
   );
 }
+
+export const ThemePickerButton = ({ children, ...props }: ButtonProps) => {
+  const theme = useTheme();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button {...props}>{children ?? "Pick theme"}</Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuLabel>Themes</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup
+          value={theme.theme}
+          onValueChange={(v) => theme.setTheme(v as Theme)}
+        >
+          <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext);

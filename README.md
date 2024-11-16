@@ -1,5 +1,7 @@
 # workflow manager
 
+[Website link]()
+
 ## Objective
 
 Showcase some of my current developer skills and knowledge.
@@ -7,116 +9,71 @@ Showcase some of my current developer skills and knowledge.
     - RESTful API
     - Event system
     - Live updates
-    - OpenTelemetry
+    - Mobile friendly interface
 - Technologies
-    - Authentication
-        - Google OAuth
-        - Email/Password
     - Application layer protocols
-        - HTTP
-        - Websocket
-        - postgres
+        - http
+        - ws
+        - postgresql
+        - amqp
+        - redis
     - tooling
         - Bazel
-        - nix
         - git
     - java 
         - Spring framework
+            - jpa
+            - rabbitmq
+            - redis
+            - websocket
+        - CEL compiler
     - javascript/typescript
         - react
-        - Next.js
+        - mobx
         - tailwind
         - shadcn
+        - websocket
 
-## TODO
-- [ ] configure attribute description
-    - [ ] frontend
-    - [ ] backend
-- [x] configure change rules
-    - [x] frontend
-    - [x] backend
-- [x] websocket integration
-    - [x] frontend
-    - [x] backend
-- [x] rabbitmq
-    - [x] publisher (workflowmanager)
-    - [x] consumer (websocket service)
-- [x] redis message queue
-- [x] simple authorization
-- [ ] CEL
-    - [ ] frontend
-    - [ ] backend
-- [ ] ui feedback
-    - [ ] loading on submit
-    - [ ] loading on fetch
-    - [ ] background signal on change
-    - [ ] error toast
-    - [ ] schema error messages
-    - [ ] date attribute form component
-    - [ ] timestamp atribute form component
+## How it works?
 
-## DX features
-- [x] java app
-- [x] generate OpenAPI file from java
-- [x] generate typescript file from OpenAPI file
-- [x] nextjs app
-- [x] tailwind
-- [x] react app
-- java
-    - [ ] logging/tracing
-    - [ ] CEL integration
-    - [ ] messagery
-    - [ ] unit testing
-    - [ ] integration testing
-    - [ ] CI
-    - [ ] CD
-    - [ ] formatting
-    - [ ] lint
-- javascript
-    - [ ] logging/tracing
-    - [ ] CEL integration
-    - [ ] unit testing
-    - [ ] integration testing
-    - [ ] CI
-    - [ ] CD
-    - [ ] formatting
-    - [ ] lint
-- [ ] nix (nix + bazel is not working, will address later)
+This is a simple application to define workflows as state machines. All mutations to an entities' state or its data is done using a RESTful API. Any mutation will trigger an event and other users will be notified of the update.
 
-## Tasks
-- [ ] create the fields class
-    - [ ] all entities can have fields
-        - for example, a state might have a capacity that is enforced by rules
-        - a state might have a deadline
-    - [ ] features will use the fields too
-        - you can namespace with for example ff__priority_v1 to signal the field priority v1 is available
-        - with reflection, the components can have behavior depending if the field exists
-    - [ ] types
-        - [ ] integer
-        - [ ] float
-        - [ ] enum
-        - [ ] decimal
-        - [ ] date
-        - [ ] timestamp
-        - [ ] boolean
-        - [ ] string
-            - [ ] regex (CAREFUL!)
-            - [ ] email
-            - [ ] phone
-    - since I'm using java, so I think making a sparse class with all these fields and only populating the correct one is ok
-    - classes: 
-        - FieldInstance { Integer descriptionId, Long integer, Double float, ... }
-        - FieldDescription extends BaseEntity { Integer workflowId, String celExpr, FieldType type, ... }
+The live update system works like this:
+1. RESTful request mutates data and publishes message to rabbitmq exchange
+2. Websocket server receives the message and
+    - Stores the message in a short lived redis buffer
+    - Notifies any ws client subscribed to the event
 
-## Ideas
+The redis buffer is used to rapidly sync a subscription and resolve race conditions.
 
-## Problems
-- package.json defining dep versions all over the place
-- how do I define http errors for the java services?
+The web client has a store that only updates data if the incoming data has its update time greater than current update time.
 
-## Don't know
-- all ts/tsx files are copied when `vite_ts_project` is used. This is necessary so vite can see the files
+### Overview of the system:
+```mermaid
+flowchart TD
+    subgraph Clientsx[Client making update]
+        Client1[Client]
+    end
 
-## Tips in this repo
-- if openapi gen fails, bump the sleep time
-- if java lsp fails, make build //... work - (this took me a while to figure out)
+    subgraph Rabbitmqx[Message broker]
+        Rabbitmq{RabbitMQ server}
+    end
+
+    subgraph Restfulx[RESTful server]
+        Restful[RESTful server]
+        Restful ---> Postgres(Postgres DB)
+    end
+
+    subgraph WSServerx[WSServer]
+        Rabbitmq ---> WSServer[Websocket server]
+        WSServer ---> Redis(Redis DB)
+    end
+
+    Restful ---> Rabbitmq
+    Client1 ---> Restful
+
+    subgraph ClientsRecv[Clients receiving update]
+        WSServer ---> Client2[Client]
+        WSServer ---> Client3[Client]
+    end
+```

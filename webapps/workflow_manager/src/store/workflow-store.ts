@@ -18,6 +18,7 @@ import {
 import "dayjs";
 import { makeObservable, observable, action } from "mobx";
 import { v4 } from "uuid";
+import { toast } from "sonner";
 
 export interface Authentication {
   clientId: string;
@@ -301,9 +302,13 @@ export class WorkflowStore {
     if (workflow.success) {
       this.updateRequestStatus("createWorkflow", arg, "OK");
       this.upsertWorkflows([workflow.data]);
+      this.successActionRequestToast("Workflow created");
     } else {
       this.updateRequestStatus("createWorkflow", arg, "ERROR");
+      this.errorActionRequestToast("creating workflow");
     }
+
+    return workflow.success;
   };
 
   public createState = async (
@@ -317,9 +322,13 @@ export class WorkflowStore {
     if (state.success) {
       this.updateRequestStatus("createState", arg, "OK");
       this.upsertStates([state.data]);
+      this.successActionRequestToast("created state");
     } else {
       this.updateRequestStatus("createState", arg, "ERROR");
+      this.errorActionRequestToast("Creating state");
     }
+
+    return state.success;
   };
 
   public createEntity = async (
@@ -333,9 +342,13 @@ export class WorkflowStore {
     if (entity.success) {
       this.updateRequestStatus("createEntity", arg, "OK");
       this.upsertEntities([entity.data]);
+      this.successActionRequestToast("Entity created");
     } else {
       this.updateRequestStatus("createEntity", arg, "ERROR");
+      this.errorActionRequestToast("creating entity");
     }
+
+    return entity.success;
   };
 
   public createAttributeDescription = async (
@@ -350,9 +363,13 @@ export class WorkflowStore {
     if (description.success) {
       this.updateRequestStatus("createAttributeDescription", arg, "OK");
       this.upsertAttributeDescriptions(arg.workflowId, [description.data]);
+      this.successActionRequestToast("Attribute created");
     } else {
       this.updateRequestStatus("createAttributeDescription", arg, "ERROR");
+      this.errorActionRequestToast("creating attribute");
     }
+
+    return description.success;
   };
 
   public setAttribute = async (
@@ -366,9 +383,13 @@ export class WorkflowStore {
     if (attribute.success) {
       this.updateRequestStatus("setAttribute", arg, "OK");
       this.upsertAttributes(arg.refType, [attribute.data]);
+      this.successActionRequestToast("Value updated");
     } else {
       this.updateRequestStatus("setAttribute", arg, "ERROR");
+      this.errorActionRequestToast("updating value");
     }
+
+    return attribute.success;
   };
 
   public setWorkflowConfig = async (
@@ -382,9 +403,13 @@ export class WorkflowStore {
     if (workflow.success) {
       this.updateRequestStatus("setWorkflowConfig", arg, "OK");
       this.upsertWorkflows([workflow.data]);
+      this.successActionRequestToast("Config updated");
     } else {
       this.updateRequestStatus("setWorkflowConfig", arg, "ERROR");
+      this.errorActionRequestToast("updating config");
     }
+
+    return workflow.success;
   };
 
   public setChangeRule = async (
@@ -398,9 +423,13 @@ export class WorkflowStore {
     if (state.success) {
       this.updateRequestStatus("setChangeRule", arg, "OK");
       this.upsertStates([state.data]);
+      this.successActionRequestToast("Change rule set");
     } else {
       this.updateRequestStatus("setChangeRule", arg, "ERROR");
+      this.errorActionRequestToast("setting change rule");
     }
+
+    return state.success;
   };
 
   public moveState = async (
@@ -415,9 +444,13 @@ export class WorkflowStore {
       this.updateRequestStatus("moveState", arg, "OK");
       this.upsertEntities([res.data.entity]);
       this.upsertStates([res.data.from, res.data.to]);
+      this.successActionRequestToast("State moved");
     } else {
       this.updateRequestStatus("moveState", arg, "ERROR");
+      this.errorActionRequestToast("moving state");
     }
+
+    return res.success;
   };
 
   public loadAttributeDescriptions = async (workflowId: number) => {
@@ -440,7 +473,10 @@ export class WorkflowStore {
         workflowId,
         "ERROR",
       );
+      this.errorLoadRequestToast();
     }
+
+    return descriptions.success;
   };
 
   public loadAttributes = async (
@@ -458,7 +494,10 @@ export class WorkflowStore {
       this.upsertAttributes(arg.refType, attrs.data);
     } else {
       this.updateRequestStatus("loadAttributes", arg, "ERROR");
+      this.errorLoadRequestToast();
     }
+
+    return attrs.success;
   };
 
   public loadWorkflow = async (workflowId: number) => {
@@ -474,7 +513,10 @@ export class WorkflowStore {
       this.upsertWorkflows([res.data]);
     } else {
       this.updateRequestStatus("loadWorkflow", workflowId, "ERROR");
+      this.errorLoadRequestToast();
     }
+
+    return res.success;
   };
 
   public loadWorkflows = async () => {
@@ -490,7 +532,10 @@ export class WorkflowStore {
       this.upsertWorkflows(workflows.data);
     } else {
       this.updateRequestStatus("loadWorkflows", undefined, "ERROR");
+      this.errorLoadRequestToast();
     }
+
+    return workflows.success;
   };
 
   public loadState = async (workflowStateId: number) => {
@@ -504,7 +549,10 @@ export class WorkflowStore {
       this.upsertStates([res.data]);
     } else {
       this.updateRequestStatus("loadState", workflowStateId, "ERROR");
+      this.errorLoadRequestToast();
     }
+
+    return res.success;
   };
 
   public loadStates = async (workflowId: number) => {
@@ -519,7 +567,10 @@ export class WorkflowStore {
       this.upsertStates(res.data);
     } else {
       this.updateRequestStatus("loadStates", workflowId, "ERROR");
+      this.errorLoadRequestToast();
     }
+
+    return res.success;
   };
 
   public loadEntity = async (entityId: number) => {
@@ -533,7 +584,10 @@ export class WorkflowStore {
       this.upsertEntities([res.data]);
     } else {
       this.updateRequestStatus("loadEntity", entityId, "ERROR");
+      this.errorLoadRequestToast();
     }
+
+    return res.success;
   };
 
   public loadEntitiesByState = async (stateId: number) => {
@@ -548,7 +602,10 @@ export class WorkflowStore {
       this.upsertEntities(entities.data);
     } else {
       this.updateRequestStatus("loadEntitiesByState", stateId, "ERROR");
+      this.errorLoadRequestToast();
     }
+
+    return entities.success;
   };
 
   private upsertWorkflows = (workflows: Workflow[]) => {
@@ -778,7 +835,7 @@ export class WorkflowStore {
   private static orderedEntries = (val: unknown) => {
     if (!Array.isArray(val) && val !== null && typeof val === "object") {
       return Object.entries(val)
-        .sort(([key1, _val1], [key2, _val2]) => (key1 > key2 ? 1 : -1))
+        .sort(([key1], [key2]) => (key1 > key2 ? 1 : -1))
         .map(([key, val]) => [key, this.orderedEntries(val)]);
     }
 
@@ -832,6 +889,28 @@ export class WorkflowStore {
 
     this.updateLocalStorageSession();
   };
+
+  private errorLoadRequestToast = () =>
+    toast(
+      "There was an error loading data for this session. Please try again later.",
+      {
+        style: {
+          background: "hsl(var(--destructive))",
+          color: "hsl(var(--destructive-foreground))",
+        },
+      },
+    );
+
+  private errorActionRequestToast = (actionName: string) =>
+    toast(`There was an error ${actionName}. Try again later.`, {
+      style: {
+        background: "hsl(var(--destructive))",
+        color: "hsl(var(--destructive-foreground))",
+      },
+    });
+
+  private successActionRequestToast = (actionName: string) =>
+    toast(`${actionName}!`);
 }
 
 class WorkflowManagerService {
@@ -848,7 +927,7 @@ class WorkflowManagerService {
         headers: this.getHeaders(),
       });
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -892,7 +971,7 @@ class WorkflowManagerService {
         },
       );
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -936,7 +1015,7 @@ class WorkflowManagerService {
         },
       );
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -976,7 +1055,7 @@ class WorkflowManagerService {
         },
       );
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1027,7 +1106,7 @@ class WorkflowManagerService {
             },
           );
           response = res;
-          // @ts-ignore
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           type _verify = Assert<
             Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
           >;
@@ -1048,7 +1127,7 @@ class WorkflowManagerService {
             },
           );
           response = res;
-          // @ts-ignore
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           type _verify = Assert<
             Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
           >;
@@ -1069,7 +1148,7 @@ class WorkflowManagerService {
             },
           );
           response = res;
-          // @ts-ignore
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           type _verify = Assert<
             Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
           >;
@@ -1110,7 +1189,7 @@ class WorkflowManagerService {
         headers: this.getHeaders(),
       });
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1151,7 +1230,7 @@ class WorkflowManagerService {
         },
       );
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1189,7 +1268,7 @@ class WorkflowManagerService {
         },
       );
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1217,7 +1296,7 @@ class WorkflowManagerService {
         headers: this.getHeaders(),
       });
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1248,7 +1327,7 @@ class WorkflowManagerService {
         },
       );
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1256,9 +1335,8 @@ class WorkflowManagerService {
         >
       >;
 
-      const x = resParser.parse(response?.data);
       return resParser.safeParse(response?.data);
-    } catch (e) {
+    } catch {
       return { success: false } as {
         success: false;
         description?: undefined;
@@ -1280,7 +1358,7 @@ class WorkflowManagerService {
         },
       );
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1299,7 +1377,6 @@ class WorkflowManagerService {
   };
 
   public getAttributes = async ({
-    workflowId,
     refType,
     baseEntityId,
   }: {
@@ -1322,7 +1399,7 @@ class WorkflowManagerService {
             },
           );
           response = res;
-          // @ts-ignore
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           type _verify = Assert<
             Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
           >;
@@ -1339,7 +1416,7 @@ class WorkflowManagerService {
             },
           );
           response = res;
-          // @ts-ignore
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           type _verify = Assert<
             Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
           >;
@@ -1356,7 +1433,7 @@ class WorkflowManagerService {
             },
           );
           response = res;
-          // @ts-ignore
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           type _verify = Assert<
             Extends<(typeof res)["data"], z.input<typeof resParser> | undefined>
           >;
@@ -1386,7 +1463,7 @@ class WorkflowManagerService {
         },
       );
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1414,7 +1491,7 @@ class WorkflowManagerService {
         headers: this.getHeaders(),
       });
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1445,7 +1522,7 @@ class WorkflowManagerService {
         },
       );
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1476,7 +1553,7 @@ class WorkflowManagerService {
         },
       );
 
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       type _verify = Assert<
         Extends<
           (typeof response)["data"],
@@ -1585,7 +1662,7 @@ export const WorkflowAttributeTypePretty = {
   TEXT: "text",
 } as const satisfies Record<WorkflowAttributeType, string>;
 
-export module parsers {
+export namespace parsers {
   const ENTITY_MAX_NAME_LENGTH = 50;
 
   const EntitySchema = z.object({
@@ -1702,7 +1779,7 @@ export module parsers {
     expression: WorkflowAttributeExprRuleSchema.optional(),
     regex: WorkflowAttributeRegexRuleSchema.optional(),
     maxLength: z.number().optional(),
-    enumDescription: z.string().array().optional(),
+    enumDescription: z.string().min(1).array().optional(),
   });
 
   export const RequestUpdateWorkflowConfigSchema = z.object({

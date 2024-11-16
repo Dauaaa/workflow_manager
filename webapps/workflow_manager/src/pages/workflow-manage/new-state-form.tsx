@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import * as React from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -27,13 +29,7 @@ const FormSchema = z.object({
 
 type FormType = z.infer<typeof FormSchema>;
 
-export const NewStateForm = ({
-  buttonOverride,
-  workflowId,
-}: {
-  buttonOverride?: React.ReactNode;
-  workflowId: number;
-}) => {
+export const NewStateForm = ({ workflowId }: { workflowId: number }) => {
   const form = useForm<FormType>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -43,12 +39,16 @@ export const NewStateForm = ({
 
   const workflowStore = useWorkflowStore();
 
+  const isSubmitting = [
+    ...workflowStore.requestStatus.createState.values(),
+  ].some((status) => status === "LOADING");
+
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(async (newState) => {
-          await workflowStore.createState({ newState, workflowId });
-          form.reset();
+          if (await workflowStore.createState({ newState, workflowId }))
+            form.reset();
         })}
         className="space-y-8"
       >
@@ -65,7 +65,9 @@ export const NewStateForm = ({
             </FormItem>
           )}
         />
-        {buttonOverride ?? <Button type="submit">Submit</Button>}
+        <Button type="submit" loading={isSubmitting}>
+          Submit
+        </Button>
       </form>
     </Form>
   );
