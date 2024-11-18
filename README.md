@@ -36,6 +36,7 @@ Showcase some of my current developer skills and knowledge.
 
 ## How it works?
 
+### Live update
 This is a simple application to define workflows as state machines. All mutations to an entities' state or its data is done using a RESTful API. Any mutation will trigger an event and other users will be notified of the update.
 
 The live update system works like this:
@@ -47,8 +48,6 @@ The live update system works like this:
 The redis buffer is used to rapidly sync a subscription and resolve race conditions.
 
 The web client has a store that only updates data if the incoming data has its update time greater than current update time.
-
-### Overview of the system:
 ```mermaid
 ---
 title: Live Update Lifecycle
@@ -80,3 +79,9 @@ flowchart TD
         WSServer --->|Notify Change| Client3[Client]
     end
 ```
+
+### CEL interpreter
+The server has an instance of a CEL runtime from cel-java that binds the user defined attributes to an expression. The expression is evaluated and its result is used to validate if a mutation is allowed.
+
+### Shared sessions
+Sessions are shared by simply using a UUID to identify the session. While not a very secure way to store data, it is a very simple way of demonstrating a tool's capabilities on a shared environment without exposing a viewer to trolls and allowing for seamless session sharing.
