@@ -50,6 +50,9 @@ The web client has a store that only updates data if the incoming data has its u
 
 ### Overview of the system:
 ```mermaid
+---
+title: Live Update Lifecycle
+---
 flowchart TD
     subgraph Clientsx[Client making update]
         Client1[Client]
@@ -69,11 +72,11 @@ flowchart TD
         WSServer ---> Redis(Redis DB)
     end
 
-    Restful ---> Rabbitmq
-    Client1 ---> Restful
+    Client1 --->|POST/PUT/PATCH| Restful
+    Restful --->|Publish change| Rabbitmq
 
     subgraph ClientsRecv[Clients receiving update]
-        WSServer ---> Client2[Client]
-        WSServer ---> Client3[Client]
+        WSServer --->|Notify Change| Client2[Client]
+        WSServer --->|Notify Change| Client3[Client]
     end
 ```
